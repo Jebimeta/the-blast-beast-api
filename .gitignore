@@ -1,0 +1,24 @@
+# Binarios
+target/
+*.class
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# Logs
+*.log
+
+# Entorno
+.env
+.env.local
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# SO
+.DS_Store
+Thumbs.db

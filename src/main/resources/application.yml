@@ -1,0 +1,83 @@
+spring:
+  application:
+    name: the-blast-beast-api
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/blastbeast}
+    username: ${DB_USER:blastbeast}
+    password: ${DB_PASSWORD:blastbeast}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 5000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        format_sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      write-dates-as-timestamps: false
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/plain,text/css,application/javascript
+  forward-headers-strategy: framework
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    version: '@project.version@'
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+
+blastbeast:
+  site:
+    name: The Blast Beast
+    base-url: ${SITE_BASE_URL:http://localhost:4200}
+    default-locale: es
+  storage:
+    endpoint: ${STORAGE_ENDPOINT:}
+    bucket: ${STORAGE_BUCKET:}
+    public-base-url: ${STORAGE_PUBLIC_BASE_URL:http://localhost:8080/media}
+
+logging:
+  level:
+    root: INFO
+    com.theblastbeast: DEBUG

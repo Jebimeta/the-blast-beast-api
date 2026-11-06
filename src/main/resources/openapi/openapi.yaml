@@ -1,0 +1,83 @@
+openapi: 3.0.3
+
+info:
+  title: The Blast Beast API
+  version: 0.1.0
+  description: |
+    API del portal de noticias de heavy metal The Blast Beast.
+
+    Este contrato es la fuente de verdad: de aquí se generan los delegates del
+    backend y el cliente TypeScript del frontend.
+  contact:
+    name: The Blast Beast
+    url: https://github.com/Jebimeta
+
+servers:
+  - url: http://localhost:8080
+    description: Entorno local
+  - url: https://api.theblastbeast.com
+    description: Producción
+
+tags:
+  - name: system
+    description: Estado y metadatos del servicio
+
+paths:
+  /api/v1/ping:
+    get:
+      tags:
+        - system
+      operationId: ping
+      summary: Comprueba que la API responde
+      responses:
+        '200':
+          description: Servicio operativo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PingResponse'
+
+components:
+  schemas:
+    PingResponse:
+      type: object
+      required:
+        - status
+        - app
+        - version
+        - timestamp
+      properties:
+        status:
+          type: string
+          example: UP
+        app:
+          type: string
+          example: the-blast-beast-api
+        version:
+          type: string
+          example: 0.1.0-SNAPSHOT
+        timestamp:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - type
+        - title
+        - status
+        - detail
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+          format: int32
+        detail:
+          type: string
+        code:
+          type: string
+          description: Código de error de negocio (p. ej. ART-001)

@@ -1,0 +1,12 @@
+spring:
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    locations: classpath:db/migration,classpath:db/dev
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.flywaydb: INFO
