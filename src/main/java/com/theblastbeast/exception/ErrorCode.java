@@ -15,6 +15,9 @@ public enum ErrorCode {
     ARTICLE_SLUG_ALREADY_EXISTS(HttpStatus.CONFLICT, "ART-002", "Ya existe un artículo con ese slug"),
     ARTICLE_NOT_PUBLISHED(HttpStatus.GONE, "ART-003", "El artículo ya no está disponible"),
 
+    // Bandas
+    BAND_NOT_FOUND(HttpStatus.NOT_FOUND, "BAND-001", "Banda no encontrada"),
+
     // Autenticación
     INVALID_CREDENTIALS(HttpStatus.UNAUTHORIZED, "AUTH-001", "Credenciales incorrectas"),
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "AUTH-002", "La sesión ha caducado"),

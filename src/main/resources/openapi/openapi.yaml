@@ -21,6 +21,14 @@ servers:
 tags:
   - name: system
     description: Estado y metadatos del servicio
+  - name: articles
+    description: Artículos publicados
+  - name: categories
+    description: Categorías editoriales
+  - name: bands
+    description: Bandas mencionadas
+  - name: search
+    description: Búsqueda full-text
 
 paths:
   /api/v1/ping:
@@ -37,7 +45,194 @@ paths:
               schema:
                 $ref: '#/components/schemas/PingResponse'
 
+  /api/v1/articles:
+    get:
+      tags:
+        - articles
+      operationId: listArticles
+      summary: Listado paginado de artículos publicados
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: category
+          in: query
+          description: Slug de categoría
+          schema:
+            type: string
+        - name: tag
+          in: query
+          description: Slug de etiqueta
+          schema:
+            type: string
+        - name: band
+          in: query
+          description: Slug de banda
+          schema:
+            type: string
+        - name: q
+          in: query
+          description: Texto de búsqueda full-text
+          schema:
+            type: string
+        - name: sort
+          in: query
+          description: Orden del listado
+          schema:
+            $ref: '#/components/schemas/ArticleSort'
+      responses:
+        '200':
+          description: Página de artículos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticlePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/articles/featured:
+    get:
+      tags:
+        - articles
+      operationId: listFeaturedArticles
+      summary: Artículos destacados para la portada
+      responses:
+        '200':
+          description: Hasta cinco artículos, del más reciente al más antiguo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ArticleSummary'
+
+  /api/v1/articles/{slug}:
+    get:
+      tags:
+        - articles
+      operationId: getArticle
+      summary: Detalle de un artículo por slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Artículo publicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '410':
+          $ref: '#/components/responses/Gone'
+
+  /api/v1/categories:
+    get:
+      tags:
+        - categories
+      operationId: listCategories
+      summary: Categorías con número de artículos publicados
+      responses:
+        '200':
+          description: Categorías ordenadas para navegación
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryResponse'
+
+  /api/v1/bands/{slug}:
+    get:
+      tags:
+        - bands
+      operationId: getBand
+      summary: Banda y sus noticias relacionadas
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Banda con sus artículos publicados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BandDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/search:
+    get:
+      tags:
+        - search
+      operationId: searchArticles
+      summary: Búsqueda full-text en español
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Texto a buscar
+          schema:
+            type: string
+            minLength: 2
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+      responses:
+        '200':
+          description: Resultados ordenados por relevancia
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticlePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
 components:
+  parameters:
+    Page:
+      name: page
+      in: query
+      description: Página, empezando en 0
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      description: Tamaño de página (máximo 50)
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 12
+
+  responses:
+    BadRequest:
+      description: Parámetros inválidos
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Gone:
+      description: El recurso ya no está disponible
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+
   schemas:
     PingResponse:
       type: object
@@ -59,6 +254,238 @@ components:
         timestamp:
           type: string
           format: date-time
+
+    ArticleSort:
+      type: string
+      enum:
+        - latest
+        - oldest
+        - relevance
+      default: latest
+
+    ArticleSummary:
+      type: object
+      required:
+        - id
+        - slug
+        - title
+        - excerpt
+        - category
+        - authorName
+        - publishedAt
+        - readingMinutes
+        - bands
+        - tags
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        title:
+          type: string
+        excerpt:
+          type: string
+        category:
+          $ref: '#/components/schemas/CategorySummary'
+        authorName:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        readingMinutes:
+          type: integer
+        bands:
+          type: array
+          items:
+            $ref: '#/components/schemas/BandSummary'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+
+    ArticleDetail:
+      type: object
+      required:
+        - id
+        - slug
+        - title
+        - excerpt
+        - bodyHtml
+        - category
+        - authorName
+        - publishedAt
+        - updatedAt
+        - readingMinutes
+        - bands
+        - tags
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        title:
+          type: string
+        excerpt:
+          type: string
+        bodyHtml:
+          type: string
+        category:
+          $ref: '#/components/schemas/CategorySummary'
+        authorName:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        readingMinutes:
+          type: integer
+        seoTitle:
+          type: string
+        seoDescription:
+          type: string
+        canonicalUrl:
+          type: string
+        bands:
+          type: array
+          items:
+            $ref: '#/components/schemas/BandSummary'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+
+    ArticlePage:
+      type: object
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+        - first
+        - last
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArticleSummary'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        first:
+          type: boolean
+        last:
+          type: boolean
+
+    CategorySummary:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        name:
+          type: string
+
+    CategoryResponse:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+        - articleCount
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        articleCount:
+          type: integer
+          format: int64
+
+    BandSummary:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        name:
+          type: string
+        genre:
+          type: string
+
+    BandDetail:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+        - articles
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        name:
+          type: string
+        country:
+          type: string
+        formedYear:
+          type: integer
+        genre:
+          type: string
+        website:
+          type: string
+        bandcampUrl:
+          type: string
+        spotifyUrl:
+          type: string
+        articles:
+          type: array
+          items:
+            $ref: '#/components/schemas/ArticleSummary'
+
+    TagSummary:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        name:
+          type: string
 
     ErrorResponse:
       type: object

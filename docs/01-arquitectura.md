@@ -1,6 +1,6 @@
 # Arquitectura — Portal de noticias de heavy metal
 
-> Documento vivo. Versión 0.1 (diseño inicial, previo a M0).
+> Documento vivo. Versión 0.2 (M0 y M1 implementados y verificados).
 
 ## 1. Objetivo y alcance
 
@@ -23,11 +23,11 @@ Portal de noticias de heavy metal con publicación real y valor de portfolio. Do
 | Framework back | **Spring Boot 3.5.16** | Última 3.x estable (la 4.x sigue en RC). Se sube a 4.x cuando MapStruct/springdoc estén alineados. |
 | Persistencia | **PostgreSQL 17** | Búsqueda full-text nativa (`tsvector` + GIN), mejor free tier (Neon/Supabase) y estándar en ofertas Java. |
 | Migraciones | **Flyway** | Sustituye `ddl-auto: update`. |
-| Contrato | **OpenAPI 3.1 + openapi-generator (delegate)** | Se conserva tu patrón API-first. |
+| Contrato | **OpenAPI 3.0 + openapi-generator (delegate)** | Se conserva tu patrón API-first. La 3.1 aún no está soportada por el generador elegido. |
 | Mapeo | **MapStruct** | Se conserva. |
 | Frontend | **Angular 22.2.6 + SSR** (Node 24 LTS) | Se conserva tu stack; SSR es obligatorio para SEO. |
-| Estilos | **PrimeNG + Tailwind** | PrimeNG ya lo dominas; Tailwind sustituye a Bootstrap. |
-| Tests back | JUnit 5, Testcontainers, REST Assured | Integración real contra Postgres. |
+| Estilos | **Tailwind 4** (PrimeNG se valorará para el admin de M2) | El sitio público no necesita una librería de componentes. |
+| Tests back | JUnit 5, AssertJ, Mockito (Testcontainers en M4) | Unitarios rápidos ahora; integración real más adelante. |
 | Tests front | Vitest/Jasmine + Playwright (e2e) | Unitarios + flujo crítico. |
 | Infra | Docker multi-stage, Compose, GitHub Actions | Demostrable en el portfolio. |
 
@@ -64,23 +64,18 @@ cualquier equipo real. Cada repo se puede clonar, construir y desplegar por sepa
 ### 4.1 Paquetes
 
 ```
-com.metalnews
-├── MetalNewsApplication.java
-├── config/                 # Security, CORS, OpenAPI, Jackson, Storage, Auditing
-├── properties/             # JwtProperties, StorageProperties, SiteProperties
+com.theblastbeast
+├── BlastBeastApplication.java
+├── config/                 # Security, Web (converters), OpenAPI, CORS
+├── properties/             # @ConfigurationProperties tipadas
 ├── controller/             # implementa *ApiDelegate (generado)
-│   └── mapper/             # MapStruct: entidad -> VO
-├── service/
-│   ├── article/            # ArticleQueryService, ArticleCommandService (+ impl)
-│   ├── auth/
-│   ├── media/
-│   └── newsletter/
-├── repository/
-│   ├── entities/           # JPA
-│   └── jpa/                # Spring Data
-├── domain/                 # generado por OpenAPI (VO)
-├── exception/              # BusinessException, AppErrorCode, handler
-└── util/
+├── mapper/                 # MapStruct: entidad -> VO
+├── service/                # ArticleService, CategoryService, BandService
+├── repository/             # Spring Data + búsqueda full-text nativa
+├── domain/
+│   ├── entity/             # entidades JPA
+│   └── vo/                 # generado por OpenAPI
+└── exception/              # BusinessException, ErrorCode, GlobalExceptionHandler
 ```
 
 **Cambio deliberado respecto al repo antiguo:** un servicio por agregado con métodos por caso de uso (`ArticleCommandService.publish`, `ArticleQueryService.findBySlug`) en lugar de interfaz+impl por operación. Con 40 clases para un CRUD el coste de navegación supera el beneficio. Se mantiene el patrón por operación cuando la operación es realmente compleja (p. ej. `PublishArticleService` con validaciones y eventos).
@@ -203,14 +198,25 @@ Notas:
 
 ### 4.4 API (`/api/v1`)
 
+**Público — implementado en M1:**
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/articles` | Listado paginado; filtros `category`, `tag`, `band`, `q`, `sort`, `page`, `size` |
+| GET | `/articles/featured` | Cinco noticias destacadas |
+| GET | `/articles/{slug}` | Detalle; 404 si no existe o es borrador, 410 si archivado |
+| GET | `/categories` | Categorías con conteo de publicados |
+| GET | `/bands/{slug}` | Banda + noticias relacionadas |
+| GET | `/search?q=` | Búsqueda full-text (mínimo 2 caracteres) |
+| GET | `/ping` | Estado del servicio |
+
+`sort` acepta `latest`, `oldest` y `relevance`. Los filtros se combinan entre sí. El listado
+devuelve `content`, `page`, `size`, `totalElements`, `totalPages`, `first` y `last`.
+
+**Redacción — diseñado para M2:**
+
 | Método | Ruta | Auth | Descripción |
 |---|---|---|---|
-| GET | `/articles` | — | Listado paginado; filtros `category`, `tag`, `band`, `q`, `sort`, `page`, `size` |
-| GET | `/articles/featured` | — | Destacados de portada |
-| GET | `/articles/{slug}` | — | Detalle; 404 si no existe, 410 si archivado |
-| GET | `/categories` | — | Categorías con conteo |
-| GET | `/bands/{slug}` | — | Banda + noticias relacionadas |
-| GET | `/search?q=` | — | Búsqueda full-text |
 | POST | `/auth/login` | — | Access (JSON) + refresh (cookie HttpOnly) |
 | POST | `/auth/refresh` | cookie | Rota el refresh token |
 | POST | `/auth/logout` | cookie | Revoca |
@@ -218,9 +224,14 @@ Notas:
 | POST | `/admin/media` | EDITOR | Multipart; genera 2 variantes WebP |
 | GET/POST/PATCH | `/admin/bands`, `/admin/categories`, `/admin/tags` | EDITOR | Taxonomía |
 | GET | `/admin/articles/{id}/revisions` | EDITOR | Historial |
-| GET | `/feed.xml` | — | RSS 2.0 |
-| GET | `/sitemap.xml` | — | Generado desde artículos publicados |
-| GET | `/actuator/health` | — | Liveness/readiness |
+
+**Entrega — M3:**
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/feed.xml` | RSS 2.0 |
+| GET | `/sitemap.xml` | Generado desde artículos publicados |
+| GET | `/actuator/health` | Liveness/readiness |
 
 El `openapi.yaml` es la fuente de verdad: genera los delegates del backend **y** el cliente TypeScript de Angular. Un solo contrato, cero DTOs duplicados a mano.
 
@@ -232,39 +243,47 @@ El `openapi.yaml` es la fuente de verdad: genera los delegates del backend **y**
 
 ```
 web/src/app/
-├── core/            # auth, tokens, interceptores, guards, error handler
-├── shared/
-│   ├── ui/          # article-card, tag-chip, pagination, empty-state, skeleton
-│   ├── seo/         # SeoService (title, meta, OG, JSON-LD)
-│   └── api/         # cliente generado desde OpenAPI
-├── layout/          # header, footer, shell
+├── core/
+│   ├── api/          # modelos, ArticleApiService, API_BASE_URL
+│   ├── seo/          # SeoService (title, meta, canonical, OG, JSON-LD), SITE_URL
+│   ├── category-store.ts
+│   └── format.ts
+├── layout/           # header con buscador y secciones, footer
 ├── features/
-│   ├── home/
-│   ├── articles/    # list, detail
-│   ├── categories/
-│   ├── bands/
-│   ├── search/
-│   └── admin/       # dashboard, editor, media, taxonomy
-└── app.routes.ts
+│   ├── home/         # portada + resolver
+│   ├── articles/     # tarjeta, archivo, detalle, resolvers
+│   ├── bands/        # ficha de banda + resolver
+│   ├── search/       # búsqueda + resolver
+│   └── not-found/
+├── app.routes.ts
+└── app.routes.server.ts
 ```
 
-- Rutas lazy por feature; `providers` a nivel de ruta para servicios de feature.
+- Rutas lazy por feature; `resolve` entrega los datos y `withComponentInputBinding()` los
+  convierte en `input.required` del componente.
+- `CategoryStore` se carga una vez con `provideAppInitializer` para la navegación global.
 - Estado con **signals**; RxJS solo para HTTP y eventos.
 - `OnPush` en todos los componentes.
-- Interceptores: `authInterceptor` (token + refresh), `errorInterceptor` (ProblemDetail → toast), `loadingInterceptor` (barra global opcional).
+- Interceptores previstos para M2: `authInterceptor` (token + refresh), `errorInterceptor`
+  (ProblemDetail → toast), `loadingInterceptor` (barra global opcional).
 
 ### 5.2 SSR y SEO
 
-- `@angular/ssr` con **prerender** de home, categorías y artículos publicados.
-- `getPrerenderParams` consulta la API en build para enumerar slugs. Si el artículo es muy reciente, `RenderMode.Server` con caché.
-- `SeoService` aplica por ruta: `<title>`, `description`, `canonical`, Open Graph, Twitter Card y JSON-LD `NewsArticle`.
-- `<h1>` único, jerarquía de encabezados correcta, `alt` obligatorio (validado en el admin), `lang="es"`.
-- Imágenes con `width`/`height`, `loading="lazy"` y `srcset` de las variantes WebP.
+- `@angular/ssr` con **`RenderMode.Server`** en todas las rutas: el contenido cambia con cada
+  publicación y el prerender en build obligaría a tener la API levantada.
+- `SeoService` aplica por ruta: `<title>`, `description`, `canonical`, Open Graph, Twitter Card
+  y JSON-LD `NewsArticle`.
+- Búsqueda, 404 y 410 llevan `noindex,follow` y no publican canonical.
+- `RESPONSE_INIT` fija el status HTTP real (404/410) en la respuesta SSR.
+- `SITE_BASE_URL` inyecta el origen público para canonical y OG; en el navegador se deduce
+  de `location`.
+- `<h1>` único, jerarquía de encabezados correcta, `alt` obligatorio (validado en el admin),
+  `lang="es"`.
 
 ### 5.3 Diseño
 
-- Tema oscuro por defecto, tokens en CSS (`--brand`, `--bg`, `--surface`, `--text`).
-- PrimeNG para tablas/formularios del admin; Tailwind para el sitio público.
+- Tema oscuro por defecto, tokens en CSS (`--blood`, `--ink`, `--surface`, `--bone`, `--muted`).
+- Tailwind 4 para todo el sitio público. PrimeNG, si entra, será solo para el admin de M2.
 - Una sola tipografía de titular (condensada) + una de texto. Sin mezclar Bootstrap.
 
 ---
@@ -315,11 +334,11 @@ web/src/app/
 
 | Fase | Contenido | Estimación | Criterio de aceptación |
 |---|---|---|---|
-| **M0 Fundaciones** | Monorepo, Maven+Angular, Docker Compose, Flyway base, OpenAPI, CI verde, `/actuator/health` | 2–3 días | `docker compose up` deja el entorno listo; CI en verde en el primer push |
-| **M1 Lectura** | Entidades, migraciones, endpoints públicos, home/listado/detalle/búsqueda, seed | 2 semanas | 20 artículos de prueba navegables con datos reales |
+| **M0 Fundaciones** ✅ | Maven+Angular, Docker Compose, Flyway base, OpenAPI, CI, `/actuator/health` | 2–3 días | `docker compose up` deja el entorno listo; CI en verde en el primer push |
+| **M1 Lectura** ✅ | Entidades, migraciones, endpoints públicos, home/listado/detalle/búsqueda, seed | 2 semanas | Contenido de ejemplo navegable con datos reales y filtros |
 | **M2 Redacción** | Auth con roles, CRUD, editor Markdown, media, revisiones | 2 semanas | Publicar un artículo con portada e imágenes sin tocar la BD |
-| **M3 SEO** | SSR+prerender, meta/OG/JSON-LD, sitemap, RSS, 404/410 | 1 semana | Rich Results válidos; sitemap enviado a Search Console |
-| **M4 Calidad** | Tests back/front, e2e Playwright, a11y AA, Lighthouse | 1 semana | Cobertura de servicios > 70 %, Lighthouse ≥ 90/95, 0 violaciones axe |
+| **M3 SEO** | Sitemap, RSS, prerender selectivo, 404/410 ya en M1 | 1 semana | Rich Results válidos; sitemap enviado a Search Console |
+| **M4 Calidad** | Testcontainers, cobertura, e2e Playwright, a11y AA, Lighthouse | 1 semana | Cobertura de servicios > 70 %, Lighthouse ≥ 90/95, 0 violaciones axe |
 | **M5 Producción** | VPS, dominio, TLS, backups, monitorización, RGPD | 1 semana | Dominio real con HTTPS, backup restaurado con éxito |
 | **M6 Crecimiento** | Newsletter doble opt-in, más roles, comentarios, relacionadas | según demanda | — |
 

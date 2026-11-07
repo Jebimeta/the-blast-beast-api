@@ -29,7 +29,14 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.GET, "/api/v1/ping").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/v1/ping",
+                                "/api/v1/articles",
+                                "/api/v1/articles/**",
+                                "/api/v1/categories",
+                                "/api/v1/bands/**",
+                                "/api/v1/search")
+                        .permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated())
