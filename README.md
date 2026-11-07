@@ -2,7 +2,7 @@
 
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F?logo=springboot&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16+-4169E1?logo=postgresql&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
 ![OpenAPI](https://img.shields.io/badge/OpenAPI-3.0-6BA539?logo=openapiinitiative&logoColor=white)
 
 API REST del portal de noticias de heavy metal **The Blast Beast**.
@@ -35,20 +35,31 @@ properties/   -> @ConfigurationProperties tipadas y validadas
 
 ## Arranque local
 
-Requisitos: JDK 21, Maven 3.9+, PostgreSQL 16+.
+Requisitos: JDK 21, Maven 3.9+, PostgreSQL 17.
+
+Los valores por defecto de `application.yml` apuntan a `jdbc:postgresql://localhost:5432/blastbeast`
+con usuario y contraseña `blastbeast`, así que en local basta con:
 
 ```bash
-cp .env.example .env
-# edita DB_URL, DB_USER y DB_PASSWORD
-
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
+```
+
+Para usar otra base de datos, exporta las variables antes de arrancar (Spring Boot no lee
+`.env` por sí solo; el archivo sirve como plantilla y para `docker run --env-file`):
+
+```bash
+export DB_URL=jdbc:postgresql://localhost:5432/blastbeast
+export DB_USER=blastbeast
+export DB_PASSWORD=blastbeast
 ```
 
 - API: http://localhost:8080/api/v1/ping
 - Swagger UI: http://localhost:8080/swagger-ui.html
 - Health: http://localhost:8080/actuator/health
 
-Flyway crea el esquema en el primer arranque. No hay `ddl-auto: update`.
+Flyway aplica `src/main/resources/db/migration/V1__baseline.sql` en el primer arranque:
+11 tablas de dominio, `flyway_schema_history`, extensión `pg_trgm` y búsqueda full-text en
+español sobre `articles.search_vector`. No hay `ddl-auto: update`.
 
 ## Tests
 
@@ -56,7 +67,8 @@ Flyway crea el esquema en el primer arranque. No hay `ddl-auto: update`.
 ./mvnw verify
 ```
 
-Los tests de integración usan Testcontainers: requieren Docker en marcha.
+El test actual (`PingControllerTest`) es un `@WebMvcTest` y no necesita base de datos. Los
+tests de integración de M4 usarán Testcontainers y requerirán Docker en marcha.
 
 ## Docker
 
