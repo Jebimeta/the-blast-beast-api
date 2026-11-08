@@ -53,6 +53,32 @@ pueden combinar. El listado devuelve `content`, `page`, `size`, `totalElements`,
 La búsqueda usa `plainto_tsquery('spanish', ...)` sobre la columna generada
 `articles.search_vector`, con índice GIN. No hay Elasticsearch.
 
+## API de redacción (M2)
+
+Autenticación JWT stateless con refresco en cookie `HttpOnly`:
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| POST | `/api/v1/auth/login` | Email + contraseña; access token en el body y refresco en cookie |
+| POST | `/api/v1/auth/refresh` | Rota el refresco y emite un access token nuevo |
+| POST | `/api/v1/auth/logout` | Revoca el refresco y borra la cookie |
+| GET | `/api/v1/auth/me` | Usuario autenticado |
+
+El panel usa `/api/v1/admin/**` (artículos, revisiones, taxonomía y medios) y
+`/api/v1/admin/markdown/preview`. Todo exige `Authorization: Bearer` y rol `ADMIN` o
+`EDITOR`.
+
+- El access token dura 15 minutos y vive solo en memoria del navegador.
+- El refresh token es opaco, se guarda hasheado y rota en cada uso. La reutilización de un
+  token revocado invalida toda su familia.
+- Las imágenes se guardan en disco tras `StorageService` y se generan variantes WebP
+  `thumb` (480 px) y `hero` (1600 px). La API pública expone `cover.variants` y el
+  frontend elige la adecuada.
+- Markdown: commonmark + tablas GFM + autolinks, saneado con la lista blanca de OWASP.
+- Cada actualización guarda una revisión restaurable.
+
+Detalle completo en [M2 — Redacción](./docs/03-redaccion.md).
+
 ## Arranque local
 
 Requisitos: JDK 21, Maven 3.9+, PostgreSQL 17.
@@ -70,6 +96,15 @@ con usuario y contraseña `blastbeast`.
 
 El perfil `dev` aplica `src/main/resources/db/dev/R__seed.sql`; `local` además activa el log
 SQL. Ningún perfil de producción carga datos de ejemplo.
+
+Credenciales del seed de desarrollo:
+
+```
+redaccion@theblastbeast.com / Redaccion2026!
+```
+
+En producción, si la tabla de usuarios está vacía, la API crea un ADMIN con
+`ADMIN_EMAIL` y `ADMIN_PASSWORD`.
 
 Para usar otra base de datos, exporta las variables antes de arrancar (Spring Boot no lee
 `.env` por sí solo; el archivo sirve como plantilla y para `docker run --env-file`):
@@ -94,16 +129,24 @@ español sobre `articles.search_vector`. No hay `ddl-auto: update`.
 ./mvnw verify
 ```
 
-Diez tests unitarios con Mockito, sin base de datos: nueve de `ArticleService` (paginación,
-valores por defecto, destacados, detalle, 404/410, búsqueda) y uno de `PingController`.
-Los tests de integración con Testcontainers llegan en M4.
+Veintiún tests unitarios con Mockito, sin base de datos: nueve de `ArticleService`
+(paginación, valores por defecto, destacados, detalle, 404/410, búsqueda y validación), seis
+de `AuthenticationService` (credenciales, cuenta desactivada, emisión, reutilización,
+caducidad y rotación), tres de `MarkdownService` (render, saneado y minutos de lectura), dos
+de `SlugService` y uno de `PingController`. Los tests de integración con Testcontainers
+llegan en M4.
 
 ## Docker
 
 ```bash
 docker build -t the-blast-beast-api .
-docker run --rm -p 8080:8080 --env-file .env the-blast-beast-api
+docker run --rm -p 8080:8080 --env-file .env \
+  -v blastbeast-media:/app/data/media the-blast-beast-api
 ```
+
+La imagen final usa `eclipse-temurin:21-jre-jammy` (glibc): `webp-imageio` necesita libc
+nativa para generar las variantes WebP. En Alpine caerían a PNG. Los medios se persisten en
+`/app/data/media`.
 
 ## Variables de entorno
 
@@ -112,22 +155,28 @@ docker run --rm -p 8080:8080 --env-file .env the-blast-beast-api
 | `DB_URL` | sí | JDBC de PostgreSQL |
 | `DB_USER` | sí | Usuario de base de datos |
 | `DB_PASSWORD` | sí | Contraseña |
-| `SITE_BASE_URL` | sí | Origen público del sitio (CORS) |
+| `SITE_BASE_URL` | sí | Origen público del sitio (CORS, canonical) |
 | `SPRING_PROFILES_ACTIVE` | no | `dev` carga el seed; sin perfil no carga datos |
-| `JWT_SECRET` | M2 | Clave HS256 (mínimo 32 bytes) |
-| `STORAGE_*` | M2 | Object storage de imágenes |
+| `JWT_SECRET` | sí en producción | Clave HS256 (mínimo 32 bytes) |
+| `JWT_ACCESS_TTL` / `JWT_REFRESH_TTL` | no | Duraciones ISO-8601 (`PT15M`, `P30D`) |
+| `AUTH_COOKIE_SECURE` | no | `true` con HTTPS para la cookie de refresco |
+| `AUTH_COOKIE_DOMAIN` | no | Dominio de la cookie (vacío = mismo host) |
+| `STORAGE_LOCAL_ROOT` | no | Directorio de medios (`./data/media` por defecto) |
+| `STORAGE_PUBLIC_BASE_URL` | sí | URL pública de medios (`https://dominio/media`) |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | no | Bootstrap del primer ADMIN si no hay usuarios |
 
 ## Documentación
 
 - [Auditoría de los repos de referencia](./docs/00-auditoria-repos.md)
 - [Arquitectura, modelo de datos, API y roadmap](./docs/01-arquitectura.md)
 - [M1 — Lectura pública: endpoints, seed y SEO](./docs/02-lectura-publica.md)
+- [M2 — Redacción: auth, CRUD, medios, revisiones y panel](./docs/03-redaccion.md)
 
 ## Roadmap
 
 - [x] **M0** Fundaciones: contrato, Flyway, seguridad base, ProblemDetail, Docker, CI
 - [x] **M1** Lectura pública: artículos, categorías, bandas, búsqueda full-text, seed
-- [ ] **M2** Redacción: JWT con refresh en cookie HttpOnly, CRUD, medios, revisiones
+- [x] **M2** Redacción: JWT con refresh en cookie HttpOnly, CRUD, medios, revisiones
 - [ ] **M3** SEO: sitemap, RSS, prerender
 - [ ] **M4** Calidad: Testcontainers, cobertura, e2e
 - [ ] **M5** Producción: VPS, TLS, backups, monitorización

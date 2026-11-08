@@ -17,16 +17,18 @@ import org.mapstruct.Mapping;
 public interface ArticleMapper {
 
     @Mapping(target = "authorName", source = "author.displayName")
+    @Mapping(target = "cover", ignore = true)
     ArticleSummary toSummary(Article article);
 
     @Mapping(target = "authorName", source = "author.displayName")
+    @Mapping(target = "cover", ignore = true)
     ArticleDetail toDetail(Article article);
+
+    List<ArticleSummary> toSummaries(List<Article> articles);
 
     CategorySummary toCategorySummary(Category category);
 
     BandSummary toBandSummary(Band band);
 
     TagSummary toTagSummary(Tag tag);
-
-    List<ArticleSummary> toSummaries(List<Article> articles);
 }

@@ -29,6 +29,10 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 12MB
 
 server:
   port: ${PORT:8080}
@@ -72,10 +76,27 @@ blastbeast:
     name: The Blast Beast
     base-url: ${SITE_BASE_URL:http://localhost:4200}
     default-locale: es
+  auth:
+    # Sin valor por defecto: en producción debe venir de JWT_SECRET.
+    # Los perfiles dev/local traen una clave de desarrollo.
+    secret: ${JWT_SECRET:}
+    access-token-ttl: ${JWT_ACCESS_TTL:PT15M}
+    refresh-token-ttl: ${JWT_REFRESH_TTL:P30D}
+    cookie-name: ${AUTH_COOKIE_NAME:bb_refresh}
+    cookie-secure: ${AUTH_COOKIE_SECURE:false}
+    cookie-domain: ${AUTH_COOKIE_DOMAIN:}
+  bootstrap:
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
+    display-name: ${ADMIN_DISPLAY_NAME:Redacción Blast Beast}
   storage:
     endpoint: ${STORAGE_ENDPOINT:}
     bucket: ${STORAGE_BUCKET:}
     public-base-url: ${STORAGE_PUBLIC_BASE_URL:http://localhost:8080/media}
+    local-root: ${STORAGE_LOCAL_ROOT:./data/media}
+    max-upload-bytes: ${STORAGE_MAX_UPLOAD_BYTES:10485760}
+    thumb-width: ${STORAGE_THUMB_WIDTH:480}
+    hero-width: ${STORAGE_HERO_WIDTH:1600}
 
 logging:
   level:

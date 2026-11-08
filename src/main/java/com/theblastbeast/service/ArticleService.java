@@ -2,16 +2,20 @@ package com.theblastbeast.service;
 
 import com.theblastbeast.domain.entity.Article;
 import com.theblastbeast.domain.entity.ArticleStatus;
+import com.theblastbeast.domain.entity.MediaAsset;
 import com.theblastbeast.domain.vo.ArticleDetail;
 import com.theblastbeast.domain.vo.ArticlePage;
 import com.theblastbeast.domain.vo.ArticleSort;
 import com.theblastbeast.domain.vo.ArticleSummary;
+import com.theblastbeast.domain.vo.MediaSummary;
 import com.theblastbeast.exception.BusinessException;
 import com.theblastbeast.exception.ErrorCode;
 import com.theblastbeast.mapper.ArticleMapper;
 import com.theblastbeast.repository.ArticleFilter;
 import com.theblastbeast.repository.ArticleRepository;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -32,6 +36,7 @@ public class ArticleService {
 
     private final ArticleRepository articleRepository;
     private final ArticleMapper articleMapper;
+    private final MediaService mediaService;
 
     @Transactional(readOnly = true)
     public ArticlePage list(ArticleFilter filter, Integer page, Integer size) {
@@ -50,7 +55,7 @@ public class ArticleService {
     @Transactional(readOnly = true)
     public List<ArticleSummary> featured() {
         log.debug("INIT - ArticleService -> featured()");
-        List<ArticleSummary> response = articleMapper.toSummaries(
+        List<ArticleSummary> response = toSummaries(
                 articleRepository.findByStatusOrderByPublishedAtDesc(
                         ArticleStatus.PUBLISHED, PageRequest.of(0, FEATURED_SIZE)));
         log.debug("END - ArticleService -> featured() - {} artículos", response.size());
@@ -71,6 +76,7 @@ public class ArticleService {
         }
 
         ArticleDetail response = articleMapper.toDetail(article);
+        response.setCover(mediaService.toSummary(article.getCoverMedia()));
         log.debug("END - ArticleService -> detail() - slug={}", slug);
         return response;
     }
@@ -90,13 +96,13 @@ public class ArticleService {
 
     @Transactional(readOnly = true)
     public List<ArticleSummary> byBand(String slug) {
-        return articleMapper.toSummaries(articleRepository.findByBandSlug(
+        return toSummaries(articleRepository.findByBandSlug(
                 slug, ArticleStatus.PUBLISHED, PageRequest.of(0, BAND_ARTICLES_SIZE)));
     }
 
     private ArticlePage toPage(Page<Article> result) {
         ArticlePage response = new ArticlePage();
-        response.setContent(articleMapper.toSummaries(result.getContent()));
+        response.setContent(toSummaries(result.getContent()));
         response.setPage(result.getNumber());
         response.setSize(result.getSize());
         response.setTotalElements(result.getTotalElements());
@@ -104,5 +110,20 @@ public class ArticleService {
         response.setFirst(result.isFirst());
         response.setLast(result.isLast());
         return response;
+    }
+
+    private List<ArticleSummary> toSummaries(List<Article> articles) {
+        List<ArticleSummary> summaries = articleMapper.toSummaries(articles);
+        List<MediaAsset> covers = articles.stream()
+                .map(Article::getCoverMedia)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, MediaSummary> coversById = mediaService.toSummaryMap(covers);
+        for (int index = 0; index < articles.size(); index++) {
+            MediaAsset cover = articles.get(index).getCoverMedia();
+            summaries.get(index).setCover(cover == null ? null : coversById.get(cover.getId()));
+        }
+        return summaries;
     }
 }

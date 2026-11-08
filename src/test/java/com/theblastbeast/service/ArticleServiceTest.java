@@ -46,6 +46,9 @@ class ArticleServiceTest {
     @Mock
     private ArticleMapper articleMapper;
 
+    @Mock
+    private MediaService mediaService;
+
     @InjectMocks
     private ArticleService articleService;
 

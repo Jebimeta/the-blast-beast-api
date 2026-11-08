@@ -56,6 +56,10 @@ public class Article {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cover_media_id")
+    private MediaAsset coverMedia;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private ArticleStatus status;

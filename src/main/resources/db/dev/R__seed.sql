@@ -4,8 +4,13 @@
 -- =====================================================================
 
 insert into users (email, password_hash, display_name, role)
-values ('redaccion@theblastbeast.com', 'seed-no-usar-en-produccion', 'Redacción Blast Beast', 'ADMIN')
-on conflict (email) do nothing;
+values ('redaccion@theblastbeast.com',
+        '$2a$10$JC.3Kq/vYOFP90KzhQVu7Oomzea.LT8a9VxFpoRXmMKf0QF1XltmK',
+        'Redacción Blast Beast', 'ADMIN')
+on conflict (email) do update
+set password_hash = excluded.password_hash,
+    display_name = excluded.display_name,
+    role = excluded.role;
 
 insert into categories (slug, name, description, sort_order) values
     ('noticias', 'Noticias', 'Lo que pasa en la escena, sin ruido.', 1),

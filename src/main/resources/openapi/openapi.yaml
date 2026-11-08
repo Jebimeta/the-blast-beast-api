@@ -29,6 +29,18 @@ tags:
     description: Bandas mencionadas
   - name: search
     description: Búsqueda full-text
+  - name: auth
+    description: Sesión de la redacción
+  - name: admin-articles
+    description: Gestión editorial de artículos
+  - name: admin-categories
+    description: Gestión de categorías
+  - name: admin-bands
+    description: Gestión de bandas
+  - name: admin-tags
+    description: Gestión de etiquetas
+  - name: admin-media
+    description: Biblioteca de medios
 
 paths:
   /api/v1/ping:
@@ -45,6 +57,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/PingResponse'
 
+  # -------------------------------------------------------------------
+  # Lectura pública
+  # -------------------------------------------------------------------
   /api/v1/articles:
     get:
       tags:
@@ -193,7 +208,836 @@ paths:
         '400':
           $ref: '#/components/responses/BadRequest'
 
+  # -------------------------------------------------------------------
+  # Autenticación
+  # -------------------------------------------------------------------
+  /api/v1/auth/login:
+    post:
+      tags:
+        - auth
+      operationId: login
+      summary: Inicia sesión en la redacción
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Sesión iniciada; la cookie de refresco se envía en la respuesta
+          headers:
+            Set-Cookie:
+              description: Cookie HttpOnly con el token de refresco
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/refresh:
+    post:
+      tags:
+        - auth
+      operationId: refreshToken
+      summary: Renueva el token de acceso usando la cookie de refresco
+      responses:
+        '200':
+          description: Token de acceso renovado
+          headers:
+            Set-Cookie:
+              description: Cookie HttpOnly con el token de refresco rotado
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/logout:
+    post:
+      tags:
+        - auth
+      operationId: logout
+      summary: Cierra la sesión y revoca el token de refresco
+      responses:
+        '204':
+          description: Sesión cerrada
+
+  /api/v1/auth/me:
+    get:
+      tags:
+        - auth
+      operationId: getCurrentUser
+      summary: Usuario autenticado
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Datos del usuario de la redacción
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # -------------------------------------------------------------------
+  # Artículos (redacción)
+  # -------------------------------------------------------------------
+  /api/v1/admin/articles:
+    get:
+      tags:
+        - admin-articles
+      operationId: listAdminArticles
+      summary: Listado editorial de artículos con filtros
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: status
+          in: query
+          description: Estado editorial
+          schema:
+            $ref: '#/components/schemas/AdminArticleStatus'
+        - name: q
+          in: query
+          description: Texto libre sobre título o slug
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Página de artículos editoriales
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminArticlePage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - admin-articles
+      operationId: createAdminArticle
+      summary: Crea un artículo en borrador
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArticleWriteRequest'
+      responses:
+        '201':
+          description: Artículo creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminArticleDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/admin/articles/preview:
+    post:
+      tags:
+        - admin-articles
+      operationId: previewMarkdown
+      summary: Renderiza Markdown con el mismo saneado que el artículo publicado
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkdownPreviewRequest'
+      responses:
+        '200':
+          description: HTML saneado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarkdownPreviewResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/admin/articles/{id}:
+    get:
+      tags:
+        - admin-articles
+      operationId: getAdminArticle
+      summary: Detalle editorial de un artículo
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      responses:
+        '200':
+          description: Artículo editorial
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminArticleDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags:
+        - admin-articles
+      operationId: updateAdminArticle
+      summary: Actualiza un artículo y guarda una revisión
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ArticleWriteRequest'
+      responses:
+        '200':
+          description: Artículo actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminArticleDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags:
+        - admin-articles
+      operationId: deleteAdminArticle
+      summary: Elimina un artículo
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      responses:
+        '204':
+          description: Artículo eliminado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/articles/{id}/publish:
+    post:
+      tags:
+        - admin-articles
+      operationId: publishAdminArticle
+      summary: Publica un artículo (fija publishedAt si es la primera vez)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      responses:
+        '200':
+          description: Artículo publicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminArticleDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/articles/{id}/unpublish:
+    post:
+      tags:
+        - admin-articles
+      operationId: unpublishAdminArticle
+      summary: Devuelve un artículo publicado a borrador
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      responses:
+        '200':
+          description: Artículo despublicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminArticleDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/articles/{id}/archive:
+    post:
+      tags:
+        - admin-articles
+      operationId: archiveAdminArticle
+      summary: Archiva un artículo
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      responses:
+        '200':
+          description: Artículo archivado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminArticleDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/articles/{id}/revisions:
+    get:
+      tags:
+        - admin-articles
+      operationId: listArticleRevisions
+      summary: Historial de revisiones de un artículo
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      responses:
+        '200':
+          description: Revisiones de la más reciente a la más antigua
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ArticleRevisionResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/articles/{id}/revisions/{revisionId}/restore:
+    post:
+      tags:
+        - admin-articles
+      operationId: restoreArticleRevision
+      summary: Restaura una revisión como versión actual
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+        - name: revisionId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Artículo restaurado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminArticleDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # -------------------------------------------------------------------
+  # Categorías (redacción)
+  # -------------------------------------------------------------------
+  /api/v1/admin/categories:
+    get:
+      tags:
+        - admin-categories
+      operationId: listAdminCategories
+      summary: Todas las categorías, incluidas las vacías
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Categorías con contador total de artículos
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CategoryAdminResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - admin-categories
+      operationId: createAdminCategory
+      summary: Crea una categoría
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryWriteRequest'
+      responses:
+        '201':
+          description: Categoría creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryAdminResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/admin/categories/{id}:
+    put:
+      tags:
+        - admin-categories
+      operationId: updateAdminCategory
+      summary: Actualiza una categoría
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CategoryWriteRequest'
+      responses:
+        '200':
+          description: Categoría actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryAdminResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags:
+        - admin-categories
+      operationId: deleteAdminCategory
+      summary: Elimina una categoría sin artículos
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Categoría eliminada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  # -------------------------------------------------------------------
+  # Bandas (redacción)
+  # -------------------------------------------------------------------
+  /api/v1/admin/bands:
+    get:
+      tags:
+        - admin-bands
+      operationId: listAdminBands
+      summary: Bandas con filtro por nombre
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          description: Texto libre sobre nombre o slug
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bandas encontradas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BandResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - admin-bands
+      operationId: createAdminBand
+      summary: Crea una banda
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BandWriteRequest'
+      responses:
+        '201':
+          description: Banda creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BandResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/admin/bands/{id}:
+    put:
+      tags:
+        - admin-bands
+      operationId: updateAdminBand
+      summary: Actualiza una banda
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BandWriteRequest'
+      responses:
+        '200':
+          description: Banda actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BandResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags:
+        - admin-bands
+      operationId: deleteAdminBand
+      summary: Elimina una banda sin artículos asociados
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Banda eliminada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  # -------------------------------------------------------------------
+  # Etiquetas (redacción)
+  # -------------------------------------------------------------------
+  /api/v1/admin/tags:
+    get:
+      tags:
+        - admin-tags
+      operationId: listAdminTags
+      summary: Etiquetas con filtro por nombre
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          description: Texto libre sobre nombre o slug
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Etiquetas encontradas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TagResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - admin-tags
+      operationId: createAdminTag
+      summary: Crea una etiqueta
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagWriteRequest'
+      responses:
+        '201':
+          description: Etiqueta creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/admin/tags/{id}:
+    put:
+      tags:
+        - admin-tags
+      operationId: updateAdminTag
+      summary: Actualiza una etiqueta
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagWriteRequest'
+      responses:
+        '200':
+          description: Etiqueta actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TagResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags:
+        - admin-tags
+      operationId: deleteAdminTag
+      summary: Elimina una etiqueta
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Etiqueta eliminada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # -------------------------------------------------------------------
+  # Medios (redacción)
+  # -------------------------------------------------------------------
+  /api/v1/admin/media:
+    get:
+      tags:
+        - admin-media
+      operationId: listAdminMedia
+      summary: Biblioteca de medios paginada
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/Size'
+        - name: q
+          in: query
+          description: Texto libre sobre texto alternativo o crédito
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Página de medios
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaPage'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - admin-media
+      operationId: uploadAdminMedia
+      summary: Sube una imagen y genera variantes thumb y hero
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                altText:
+                  type: string
+                  maxLength: 300
+                credit:
+                  type: string
+                  maxLength: 200
+      responses:
+        '201':
+          description: Medio subido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaAssetResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: El archivo supera el tamaño máximo
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '415':
+          description: Formato de archivo no admitido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/admin/media/{id}:
+    patch:
+      tags:
+        - admin-media
+      operationId: updateAdminMedia
+      summary: Actualiza texto alternativo y crédito
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaUpdateRequest'
+      responses:
+        '200':
+          description: Medio actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MediaAssetResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - admin-media
+      operationId: deleteAdminMedia
+      summary: Elimina un medio y sus variantes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Medio eliminado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   parameters:
     Page:
       name: page
@@ -212,6 +1056,13 @@ components:
         minimum: 1
         maximum: 50
         default: 12
+    ArticleId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
 
   responses:
     BadRequest:
@@ -220,8 +1071,20 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    Unauthorized:
+      description: Autenticación requerida o credenciales incorrectas
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     NotFound:
       description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    Conflict:
+      description: El recurso entra en conflicto con el estado actual
       content:
         application/json:
           schema:
@@ -295,6 +1158,8 @@ components:
           format: date-time
         readingMinutes:
           type: integer
+        cover:
+          $ref: '#/components/schemas/MediaSummary'
         bands:
           type: array
           items:
@@ -349,6 +1214,8 @@ components:
           type: string
         canonicalUrl:
           type: string
+        cover:
+          $ref: '#/components/schemas/MediaSummary'
         bands:
           type: array
           items:
@@ -508,3 +1375,584 @@ components:
         code:
           type: string
           description: Código de error de negocio (p. ej. ART-001)
+
+    # -----------------------------------------------------------------
+    # Autenticación
+    # -----------------------------------------------------------------
+    AdminRole:
+      type: string
+      enum:
+        - ADMIN
+        - EDITOR
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          minLength: 8
+          maxLength: 200
+
+    AuthUser:
+      type: object
+      required:
+        - id
+        - email
+        - displayName
+        - role
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+        displayName:
+          type: string
+        role:
+          $ref: '#/components/schemas/AdminRole'
+
+    AuthResponse:
+      type: object
+      required:
+        - accessToken
+        - tokenType
+        - expiresIn
+        - user
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          example: Bearer
+        expiresIn:
+          type: integer
+          description: Segundos de validez del token de acceso
+        user:
+          $ref: '#/components/schemas/AuthUser'
+
+    # -----------------------------------------------------------------
+    # Artículos editoriales
+    # -----------------------------------------------------------------
+    AdminArticleStatus:
+      type: string
+      enum:
+        - draft
+        - published
+        - archived
+
+    AdminArticleSummary:
+      type: object
+      required:
+        - id
+        - slug
+        - title
+        - excerpt
+        - status
+        - category
+        - authorName
+        - readingMinutes
+        - updatedAt
+        - bands
+        - tags
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        title:
+          type: string
+        excerpt:
+          type: string
+        status:
+          $ref: '#/components/schemas/AdminArticleStatus'
+        category:
+          $ref: '#/components/schemas/CategorySummary'
+        authorName:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        readingMinutes:
+          type: integer
+        cover:
+          $ref: '#/components/schemas/MediaSummary'
+        bands:
+          type: array
+          items:
+            $ref: '#/components/schemas/BandSummary'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+
+    AdminArticleDetail:
+      type: object
+      required:
+        - id
+        - slug
+        - title
+        - excerpt
+        - bodyMd
+        - bodyHtml
+        - status
+        - category
+        - authorName
+        - readingMinutes
+        - createdAt
+        - updatedAt
+        - bands
+        - tags
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        title:
+          type: string
+        excerpt:
+          type: string
+        bodyMd:
+          type: string
+        bodyHtml:
+          type: string
+        status:
+          $ref: '#/components/schemas/AdminArticleStatus'
+        category:
+          $ref: '#/components/schemas/CategorySummary'
+        authorName:
+          type: string
+        publishedAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        readingMinutes:
+          type: integer
+        seoTitle:
+          type: string
+        seoDescription:
+          type: string
+        canonicalUrl:
+          type: string
+        cover:
+          $ref: '#/components/schemas/MediaSummary'
+        bands:
+          type: array
+          items:
+            $ref: '#/components/schemas/BandSummary'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/TagSummary'
+
+    AdminArticlePage:
+      type: object
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+        - first
+        - last
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminArticleSummary'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        first:
+          type: boolean
+        last:
+          type: boolean
+
+    ArticleWriteRequest:
+      type: object
+      required:
+        - title
+        - excerpt
+        - bodyMd
+        - categoryId
+      properties:
+        title:
+          type: string
+          minLength: 3
+          maxLength: 200
+        slug:
+          type: string
+          maxLength: 160
+        excerpt:
+          type: string
+          minLength: 10
+          maxLength: 500
+        bodyMd:
+          type: string
+          minLength: 10
+        categoryId:
+          type: integer
+          format: int64
+        bandIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        tagIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+        coverMediaId:
+          type: integer
+          format: int64
+        seoTitle:
+          type: string
+          maxLength: 200
+        seoDescription:
+          type: string
+          maxLength: 320
+        canonicalUrl:
+          type: string
+          maxLength: 500
+
+    ArticleRevisionResponse:
+      type: object
+      required:
+        - id
+        - title
+        - bodyMd
+        - editorName
+        - createdAt
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        bodyMd:
+          type: string
+        editorName:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    MarkdownPreviewRequest:
+      type: object
+      required:
+        - bodyMd
+      properties:
+        bodyMd:
+          type: string
+          minLength: 1
+
+    MarkdownPreviewResponse:
+      type: object
+      required:
+        - bodyHtml
+      properties:
+        bodyHtml:
+          type: string
+
+    # -----------------------------------------------------------------
+    # Taxonomía editorial
+    # -----------------------------------------------------------------
+    CategoryAdminResponse:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+        - sortOrder
+        - articleCount
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        sortOrder:
+          type: integer
+        articleCount:
+          type: integer
+          format: int64
+
+    CategoryWriteRequest:
+      type: object
+      required:
+        - name
+      properties:
+        slug:
+          type: string
+          maxLength: 80
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+        description:
+          type: string
+          maxLength: 300
+        sortOrder:
+          type: integer
+          minimum: 0
+
+    BandResponse:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        name:
+          type: string
+        country:
+          type: string
+        formedYear:
+          type: integer
+        genre:
+          type: string
+        website:
+          type: string
+        bandcampUrl:
+          type: string
+        spotifyUrl:
+          type: string
+
+    BandWriteRequest:
+      type: object
+      required:
+        - name
+      properties:
+        slug:
+          type: string
+          maxLength: 120
+        name:
+          type: string
+          minLength: 2
+          maxLength: 120
+        country:
+          type: string
+          maxLength: 80
+        formedYear:
+          type: integer
+          minimum: 1900
+          maximum: 2100
+        genre:
+          type: string
+          maxLength: 60
+        website:
+          type: string
+          maxLength: 300
+        bandcampUrl:
+          type: string
+          maxLength: 300
+        spotifyUrl:
+          type: string
+          maxLength: 300
+
+    TagResponse:
+      type: object
+      required:
+        - id
+        - slug
+        - name
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        name:
+          type: string
+
+    TagWriteRequest:
+      type: object
+      required:
+        - name
+      properties:
+        slug:
+          type: string
+          maxLength: 80
+        name:
+          type: string
+          minLength: 2
+          maxLength: 80
+
+    # -----------------------------------------------------------------
+    # Medios
+    # -----------------------------------------------------------------
+    MediaAssetKind:
+      type: string
+      enum:
+        - original
+        - thumb
+        - hero
+
+    MediaSummary:
+      type: object
+      required:
+        - id
+        - kind
+        - url
+        - mimeType
+        - width
+        - height
+      properties:
+        id:
+          type: integer
+          format: int64
+        kind:
+          $ref: '#/components/schemas/MediaAssetKind'
+        url:
+          type: string
+        mimeType:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+        altText:
+          type: string
+        credit:
+          type: string
+        variants:
+          type: array
+          description: Variantes generadas (thumb, hero) listas para usar en el portal.
+          items:
+            $ref: '#/components/schemas/MediaVariant'
+
+    MediaVariant:
+      type: object
+      required:
+        - kind
+        - url
+        - mimeType
+        - width
+        - height
+        - bytes
+      properties:
+        kind:
+          $ref: '#/components/schemas/MediaAssetKind'
+        url:
+          type: string
+        mimeType:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+        bytes:
+          type: integer
+          format: int64
+
+    MediaAssetResponse:
+      type: object
+      required:
+        - id
+        - kind
+        - url
+        - mimeType
+        - width
+        - height
+        - bytes
+        - createdAt
+        - variants
+      properties:
+        id:
+          type: integer
+          format: int64
+        kind:
+          $ref: '#/components/schemas/MediaAssetKind'
+        url:
+          type: string
+        mimeType:
+          type: string
+        width:
+          type: integer
+        height:
+          type: integer
+        bytes:
+          type: integer
+          format: int64
+        altText:
+          type: string
+        credit:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        variants:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaVariant'
+
+    MediaPage:
+      type: object
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+        - first
+        - last
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/MediaAssetResponse'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        first:
+          type: boolean
+        last:
+          type: boolean
+
+    MediaUpdateRequest:
+      type: object
+      properties:
+        altText:
+          type: string
+          maxLength: 300
+        credit:
+          type: string
+          maxLength: 200

@@ -7,6 +7,9 @@ target/
 # Logs
 *.log
 
+# Medios subidos en local
+data/
+
 # Entorno
 .env
 .env.local

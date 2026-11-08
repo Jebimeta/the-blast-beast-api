@@ -2,6 +2,10 @@ spring:
   flyway:
     locations: classpath:db/migration,classpath:db/dev
 
+blastbeast:
+  auth:
+    secret: ${JWT_SECRET:dev-only-secret-change-me-please-32-chars-min}
+
 logging:
   level:
     org.flywaydb: INFO

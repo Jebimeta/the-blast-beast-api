@@ -6,14 +6,22 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface ArticleRepository extends JpaRepository<Article, Long>, ArticleSearchRepository {
+public interface ArticleRepository extends JpaRepository<Article, Long>,
+        ArticleSearchRepository, JpaSpecificationExecutor<Article> {
 
     Optional<Article> findBySlug(String slug);
 
     List<Article> findByStatusOrderByPublishedAtDesc(ArticleStatus status, Pageable pageable);
+
+    long countByCategoryId(Long categoryId);
+
+    boolean existsByBandsId(Long bandId);
+
+    boolean existsByCoverMediaId(Long mediaId);
 
     @Query("""
             select distinct a
