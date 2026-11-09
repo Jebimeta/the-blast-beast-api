@@ -150,13 +150,19 @@ español sobre `articles.search_vector`. No hay `ddl-auto: update`.
 ./mvnw verify
 ```
 
-Veintinueve tests unitarios con Mockito, sin base de datos: nueve de `ArticleService`
-(paginación, valores por defecto, destacados, detalle, 404/410, búsqueda y validación), seis
-de `AuthenticationService` (credenciales, cuenta desactivada, emisión, reutilización,
-caducidad y rotación), tres de `MarkdownService` (render, saneado y minutos de lectura), dos
-de `SlugService`, uno de `PingController`, tres de `SitemapService` (URLs, imagen `hero` y
-`lastmod`), tres de `FeedService` (RSS global, categoría y 404) y dos de `SeoController`
-(ETag/304 y `robots.txt`). Los tests de integración con Testcontainers llegan en M4.
+**Tests unitarios** (Surefire, sin base de datos): 29 tests con JUnit 5, AssertJ y Mockito
+sobre servicios, mappers y controladores.
+
+**Tests de integración** (Failsafe, PostgreSQL real): 41 tests en `src/test/java/com/theblastbeast/it`
+que arrancan un contenedor `postgres:17-alpine` con Testcontainers, aplican Flyway y prueban
+la API completa vía HTTP: lectura pública, autenticación y rotación de refrescos, CRUD
+editorial con revisiones, taxonomía, medios con variantes WebP, y sitemap/robots/feeds.
+
+**Cobertura** (JaCoCo): el build falla si la cobertura de líneas de
+`com.theblastbeast.service` baja del 70 %. El informe se genera en `target/site/jacoco/`.
+Cobertura actual: 93,6 % de líneas.
+
+> Los tests de integración necesitan Docker en marcha. En CI, `ubuntu-latest` ya lo incluye.
 
 ## Docker
 

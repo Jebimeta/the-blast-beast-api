@@ -13,6 +13,7 @@ import java.time.OffsetDateTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "article_revisions")
@@ -39,6 +40,7 @@ public class ArticleRevision {
     @Column(name = "body_md", nullable = false, columnDefinition = "text")
     private String bodyMd;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false)
     private OffsetDateTime createdAt;
 }

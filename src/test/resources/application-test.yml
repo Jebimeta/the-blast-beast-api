@@ -1,0 +1,43 @@
+spring:
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    validate-on-migrate: true
+
+blastbeast:
+  site:
+    name: The Blast Beast
+    base-url: https://theblastbeast.test
+    default-locale: es
+  auth:
+    secret: integration-test-secret-key-with-more-than-32-chars
+    access-token-ttl: PT15M
+    refresh-token-ttl: P30D
+    cookie-name: bb_refresh
+    cookie-secure: false
+    cookie-domain:
+  bootstrap:
+    # Sin credenciales: los tests crean sus propios usuarios.
+    email:
+    password:
+    display-name: Redacción Blast Beast
+  storage:
+    public-base-url: https://theblastbeast.test/media
+    local-root: target/test-media
+    max-upload-bytes: 10485760
+    thumb-width: 480
+    hero-width: 1600
+
+logging:
+  level:
+    root: WARN
+    com.theblastbeast: INFO
+    org.testcontainers: WARN

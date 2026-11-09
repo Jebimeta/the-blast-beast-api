@@ -40,26 +40,26 @@ public class SeoController {
     private final FeedService feedService;
     private final SiteProperties siteProperties;
 
-    @GetMapping(value = "/sitemap.xml", produces = MediaType.APPLICATION_XML_VALUE)
+    @GetMapping("/sitemap.xml")
     public ResponseEntity<String> sitemap(
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
         return xml(sitemapService.build(), MediaType.APPLICATION_XML, ifNoneMatch);
     }
 
-    @GetMapping(value = "/feed.xml", produces = "application/rss+xml")
+    @GetMapping("/feed.xml")
     public ResponseEntity<String> feed(
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
         return xml(feedService.globalFeed(), RSS, ifNoneMatch);
     }
 
-    @GetMapping(value = "/categorias/{slug}/feed.xml", produces = "application/rss+xml")
+    @GetMapping("/categorias/{slug}/feed.xml")
     public ResponseEntity<String> categoryFeed(
             @PathVariable String slug,
             @RequestHeader(value = HttpHeaders.IF_NONE_MATCH, required = false) String ifNoneMatch) {
         return xml(feedService.categoryFeed(slug), RSS, ifNoneMatch);
     }
 
-    @GetMapping(value = "/robots.txt", produces = MediaType.TEXT_PLAIN_VALUE)
+    @GetMapping("/robots.txt")
     public ResponseEntity<String> robots() {
         String body = """
                 User-agent: *

@@ -56,7 +56,7 @@ public class AuthenticationService {
         return session;
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = BusinessException.class)
     public AuthSession refresh(String rawToken) {
         log.debug("INIT - AuthenticationService -> refresh()");
         RefreshToken stored = refreshTokenRepository.findByTokenHash(hash(rawToken))

@@ -30,12 +30,22 @@ jobs:
       - name: Compilar y verificar
         run: ./mvnw -B -ntp verify
 
-      - name: Publicar informe de tests
+      - name: Publicar informes de tests
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: surefire-reports
-          path: target/surefire-reports/
+          name: test-reports
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
+          retention-days: 7
+
+      - name: Publicar cobertura
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
           retention-days: 7
 
   image:
