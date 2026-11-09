@@ -229,8 +229,10 @@ devuelve `content`, `page`, `size`, `totalElements`, `totalPages`, `first` y `la
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| GET | `/feed.xml` | RSS 2.0 |
-| GET | `/sitemap.xml` | Generado desde artículos publicados |
+| GET | `/feed.xml` | RSS 2.0 global |
+| GET | `/categorias/{slug}/feed.xml` | RSS 2.0 por categoría |
+| GET | `/sitemap.xml` | Generado desde artículos publicados, con imagen `hero` |
+| GET | `/robots.txt` | Reglas de rastreo y referencia al sitemap |
 | GET | `/actuator/health` | Liveness/readiness |
 
 El `openapi.yaml` es la fuente de verdad: genera los delegates del backend **y** el cliente TypeScript de Angular. Un solo contrato, cero DTOs duplicados a mano.
@@ -254,6 +256,7 @@ web/src/app/
 │   ├── articles/     # tarjeta, archivo, detalle, resolvers
 │   ├── bands/        # ficha de banda + resolver
 │   ├── search/       # búsqueda + resolver
+│   ├── static/       # sobre, contacto y privacidad (prerender)
 │   └── not-found/
 ├── app.routes.ts
 └── app.routes.server.ts
@@ -269,14 +272,15 @@ web/src/app/
 
 ### 5.2 SSR y SEO
 
-- `@angular/ssr` con **`RenderMode.Server`** en todas las rutas: el contenido cambia con cada
-  publicación y el prerender en build obligaría a tener la API levantada.
+- `@angular/ssr` con **`RenderMode.Server`** en las rutas que dependen de datos: el contenido
+  cambia con cada publicación. `/sobre`, `/contacto` y `/privacidad` usan
+  **`RenderMode.Prerender`** porque son estáticas y no necesitan la API en build.
 - `SeoService` aplica por ruta: `<title>`, `description`, `canonical`, Open Graph, Twitter Card
-  y JSON-LD `NewsArticle`.
+  y JSON-LD (`WebSite`/`SearchAction`, `NewsArticle`, `BreadcrumbList`).
 - Búsqueda, 404 y 410 llevan `noindex,follow` y no publican canonical.
 - `RESPONSE_INIT` fija el status HTTP real (404/410) en la respuesta SSR.
 - `SITE_BASE_URL` inyecta el origen público para canonical y OG; en el navegador se deduce
-  de `location`.
+  de `location` y en build alimenta el HTML prerenderizado.
 - `<h1>` único, jerarquía de encabezados correcta, `alt` obligatorio (validado en el admin),
   `lang="es"`.
 
@@ -336,8 +340,8 @@ web/src/app/
 |---|---|---|---|
 | **M0 Fundaciones** ✅ | Maven+Angular, Docker Compose, Flyway base, OpenAPI, CI, `/actuator/health` | 2–3 días | `docker compose up` deja el entorno listo; CI en verde en el primer push |
 | **M1 Lectura** ✅ | Entidades, migraciones, endpoints públicos, home/listado/detalle/búsqueda, seed | 2 semanas | Contenido de ejemplo navegable con datos reales y filtros |
-| **M2 Redacción** | Auth con roles, CRUD, editor Markdown, media, revisiones | 2 semanas | Publicar un artículo con portada e imágenes sin tocar la BD |
-| **M3 SEO** | Sitemap, RSS, prerender selectivo, 404/410 ya en M1 | 1 semana | Rich Results válidos; sitemap enviado a Search Console |
+| **M2 Redacción** ✅ | Auth con roles, CRUD, editor Markdown, media, revisiones | 2 semanas | Publicar un artículo con portada e imágenes sin tocar la BD |
+| **M3 SEO** ✅ | Sitemap, robots, RSS global y por categoría, JSON-LD, prerender selectivo, 404/410 ya en M1 | 1 semana | Rich Results válidos; sitemap enviado a Search Console |
 | **M4 Calidad** | Testcontainers, cobertura, e2e Playwright, a11y AA, Lighthouse | 1 semana | Cobertura de servicios > 70 %, Lighthouse ≥ 90/95, 0 violaciones axe |
 | **M5 Producción** | VPS, dominio, TLS, backups, monitorización, RGPD | 1 semana | Dominio real con HTTPS, backup restaurado con éxito |
 | **M6 Crecimiento** | Newsletter doble opt-in, más roles, comentarios, relacionadas | según demanda | — |

@@ -79,6 +79,27 @@ El panel usa `/api/v1/admin/**` (artículos, revisiones, taxonomía y medios) y
 
 Detalle completo en [M2 — Redacción](./docs/03-redaccion.md).
 
+## SEO técnico y sindicación (M3)
+
+Recursos XML públicos en la raíz del dominio, servidos por la API y publicados por Caddy:
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/sitemap.xml` | URLs indexables con `lastmod` e imagen `hero` |
+| GET | `/robots.txt` | Rastrea el portal, bloquea `/admin` y `/api/` |
+| GET | `/feed.xml` | RSS 2.0 global, últimos 30 artículos |
+| GET | `/categorias/{slug}/feed.xml` | RSS 2.0 de una categoría |
+
+- El sitemap incluye portada, archivo, categorías, bandas y artículos `PUBLISHED`; las
+  URLs son absolutas a partir de `SITE_BASE_URL`.
+- Los feeds llevan el HTML completo y saneado en `content:encoded`, autor, categoría y la
+  variante `hero` en `media:content`.
+- Sitemap y feeds responden con `ETag` y `304 Not Modified`; `robots.txt` se genera con el
+  origen público real.
+- Caddy enruta estas rutas a la API antes del catch-all del frontend.
+
+Detalle completo en [M3 — SEO técnico](./docs/04-seo.md).
+
 ## Arranque local
 
 Requisitos: JDK 21, Maven 3.9+, PostgreSQL 17.
@@ -129,12 +150,13 @@ español sobre `articles.search_vector`. No hay `ddl-auto: update`.
 ./mvnw verify
 ```
 
-Veintiún tests unitarios con Mockito, sin base de datos: nueve de `ArticleService`
+Veintinueve tests unitarios con Mockito, sin base de datos: nueve de `ArticleService`
 (paginación, valores por defecto, destacados, detalle, 404/410, búsqueda y validación), seis
 de `AuthenticationService` (credenciales, cuenta desactivada, emisión, reutilización,
 caducidad y rotación), tres de `MarkdownService` (render, saneado y minutos de lectura), dos
-de `SlugService` y uno de `PingController`. Los tests de integración con Testcontainers
-llegan en M4.
+de `SlugService`, uno de `PingController`, tres de `SitemapService` (URLs, imagen `hero` y
+`lastmod`), tres de `FeedService` (RSS global, categoría y 404) y dos de `SeoController`
+(ETag/304 y `robots.txt`). Los tests de integración con Testcontainers llegan en M4.
 
 ## Docker
 
@@ -171,13 +193,14 @@ nativa para generar las variantes WebP. En Alpine caerían a PNG. Los medios se 
 - [Arquitectura, modelo de datos, API y roadmap](./docs/01-arquitectura.md)
 - [M1 — Lectura pública: endpoints, seed y SEO](./docs/02-lectura-publica.md)
 - [M2 — Redacción: auth, CRUD, medios, revisiones y panel](./docs/03-redaccion.md)
+- [M3 — SEO técnico: sitemap, robots, RSS, JSON-LD y prerender selectivo](./docs/04-seo.md)
 
 ## Roadmap
 
 - [x] **M0** Fundaciones: contrato, Flyway, seguridad base, ProblemDetail, Docker, CI
 - [x] **M1** Lectura pública: artículos, categorías, bandas, búsqueda full-text, seed
 - [x] **M2** Redacción: JWT con refresh en cookie HttpOnly, CRUD, medios, revisiones
-- [ ] **M3** SEO: sitemap, RSS, prerender
+- [x] **M3** SEO: sitemap, robots, RSS, JSON-LD y prerender selectivo
 - [ ] **M4** Calidad: Testcontainers, cobertura, e2e
 - [ ] **M5** Producción: VPS, TLS, backups, monitorización
 

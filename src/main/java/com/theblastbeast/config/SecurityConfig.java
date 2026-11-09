@@ -37,6 +37,10 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.GET,
+                                "/sitemap.xml",
+                                "/robots.txt",
+                                "/feed.xml",
+                                "/categorias/*/feed.xml",
                                 "/api/v1/ping",
                                 "/api/v1/articles",
                                 "/api/v1/articles/**",

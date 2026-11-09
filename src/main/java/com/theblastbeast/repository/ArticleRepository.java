@@ -34,4 +34,36 @@ public interface ArticleRepository extends JpaRepository<Article, Long>,
             @Param("slug") String slug,
             @Param("status") ArticleStatus status,
             Pageable pageable);
+
+    @Query("""
+            select a
+            from Article a
+            left join fetch a.coverMedia
+            where a.status = :status
+            order by a.publishedAt desc
+            """)
+    List<Article> findAllByStatusWithCover(@Param("status") ArticleStatus status);
+
+    @Query("""
+            select a
+            from Article a
+            left join fetch a.coverMedia
+            where a.status = :status
+            order by a.publishedAt desc
+            """)
+    List<Article> findPageByStatusWithCover(
+            @Param("status") ArticleStatus status,
+            Pageable pageable);
+
+    @Query("""
+            select a
+            from Article a
+            left join fetch a.coverMedia
+            where a.category.slug = :slug and a.status = :status
+            order by a.publishedAt desc
+            """)
+    List<Article> findPageByCategorySlugAndStatus(
+            @Param("slug") String slug,
+            @Param("status") ArticleStatus status,
+            Pageable pageable);
 }
