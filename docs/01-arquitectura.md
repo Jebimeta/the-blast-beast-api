@@ -1,6 +1,6 @@
 # Arquitectura — Portal de noticias de heavy metal
 
-> Documento vivo. Versión 0.2 (M0 y M1 implementados y verificados).
+> Documento vivo. Versión 0.5 (M0–M4 implementados y verificados).
 
 ## 1. Objetivo y alcance
 
@@ -342,7 +342,7 @@ web/src/app/
 | **M1 Lectura** ✅ | Entidades, migraciones, endpoints públicos, home/listado/detalle/búsqueda, seed | 2 semanas | Contenido de ejemplo navegable con datos reales y filtros |
 | **M2 Redacción** ✅ | Auth con roles, CRUD, editor Markdown, media, revisiones | 2 semanas | Publicar un artículo con portada e imágenes sin tocar la BD |
 | **M3 SEO** ✅ | Sitemap, robots, RSS global y por categoría, JSON-LD, prerender selectivo, 404/410 ya en M1 | 1 semana | Rich Results válidos; sitemap enviado a Search Console |
-| **M4 Calidad** | Testcontainers, cobertura, e2e Playwright, a11y AA, Lighthouse | 1 semana | Cobertura de servicios > 70 %, Lighthouse ≥ 90/95, 0 violaciones axe |
+| **M4 Calidad** ✅ | Testcontainers, cobertura, e2e Playwright, a11y AA, Lighthouse | 1 semana | Cobertura de servicios > 70 %, Lighthouse ≥ 90/95, 0 violaciones axe |
 | **M5 Producción** | VPS, dominio, TLS, backups, monitorización, RGPD | 1 semana | Dominio real con HTTPS, backup restaurado con éxito |
 | **M6 Crecimiento** | Newsletter doble opt-in, más roles, comentarios, relacionadas | según demanda | — |
 

@@ -61,6 +61,9 @@ public class SecurityConfig {
                 .exceptionHandling(handler -> handler
                         .authenticationEntryPoint(restSecurityHandler)
                         .accessDeniedHandler(restSecurityHandler))
+                // La política de caché la decide CacheControlFilter: contenido público
+                // cacheable (también para el transfer cache de la SSR) y área privada no-store.
+                .headers(headers -> headers.cacheControl(cache -> cache.disable()))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)

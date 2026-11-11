@@ -16,7 +16,7 @@ API REST del portal de noticias de heavy metal **The Blast Beast**.
 | Base de datos | PostgreSQL + Flyway |
 | Contrato | OpenAPI 3.0 con `delegatePattern` |
 | Mapeo | MapStruct |
-| Tests | JUnit 5, AssertJ, Mockito |
+| Tests | JUnit 5, AssertJ, Mockito + Testcontainers (PostgreSQL 17) |
 | Contenedores | Docker multi-stage |
 
 ## Arquitectura
@@ -160,9 +160,11 @@ editorial con revisiones, taxonomía, medios con variantes WebP, y sitemap/robot
 
 **Cobertura** (JaCoCo): el build falla si la cobertura de líneas de
 `com.theblastbeast.service` baja del 70 %. El informe se genera en `target/site/jacoco/`.
-Cobertura actual: 93,6 % de líneas.
+Cobertura actual: **93,6 % de líneas** y 65,5 % de ramas.
 
 > Los tests de integración necesitan Docker en marcha. En CI, `ubuntu-latest` ya lo incluye.
+> Un único contenedor `postgres:17-alpine` se reutiliza durante toda la ejecución; entre
+> tests se truncan las tablas, no se recrea el esquema.
 
 ## Docker
 
@@ -200,6 +202,7 @@ nativa para generar las variantes WebP. En Alpine caerían a PNG. Los medios se 
 - [M1 — Lectura pública: endpoints, seed y SEO](./docs/02-lectura-publica.md)
 - [M2 — Redacción: auth, CRUD, medios, revisiones y panel](./docs/03-redaccion.md)
 - [M3 — SEO técnico: sitemap, robots, RSS, JSON-LD y prerender selectivo](./docs/04-seo.md)
+- [M4 — Calidad: Testcontainers, cobertura, e2e, accesibilidad y rendimiento](./docs/05-calidad.md)
 
 ## Roadmap
 
@@ -207,7 +210,7 @@ nativa para generar las variantes WebP. En Alpine caerían a PNG. Los medios se 
 - [x] **M1** Lectura pública: artículos, categorías, bandas, búsqueda full-text, seed
 - [x] **M2** Redacción: JWT con refresh en cookie HttpOnly, CRUD, medios, revisiones
 - [x] **M3** SEO: sitemap, robots, RSS, JSON-LD y prerender selectivo
-- [ ] **M4** Calidad: Testcontainers, cobertura, e2e
+- [x] **M4** Calidad: Testcontainers, JaCoCo, Playwright, axe AA y Lighthouse
 - [ ] **M5** Producción: VPS, TLS, backups, monitorización
 
 ## Licencia
