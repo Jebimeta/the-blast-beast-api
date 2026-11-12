@@ -165,7 +165,8 @@ el contenido de ejemplo de M1. Es repetible y no se carga en producción.
   artículos y taxonomía, subida de medios con variantes, protección de medios en uso,
   revisiones, 404/410 públicos y logout.
 
-Pendiente en M4: Testcontainers, e2e Playwright y auditoría a11y.
+Cubierto en M4: Testcontainers, e2e Playwright y auditoría a11y. Ver
+[`05-calidad.md`](./05-calidad.md).
 
 ## Docker
 

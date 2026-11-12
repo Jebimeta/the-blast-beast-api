@@ -1,6 +1,6 @@
 # Arquitectura — Portal de noticias de heavy metal
 
-> Documento vivo. Versión 0.5 (M0–M4 implementados y verificados).
+> Documento vivo. Versión 0.6 (M0–M5 implementados; M5 pendiente solo del despliegue real).
 
 ## 1. Objetivo y alcance
 
@@ -320,17 +320,27 @@ web/src/app/
 **Local**: `docker compose up` → Postgres + API + web SSR + Caddy. Datos de ejemplo por Flyway (`R__seed.sql`) en perfil `dev`.
 
 **CI (GitHub Actions)**
-- `api.yml`: `mvn -B verify` con Testcontainers + análisis + build de imagen.
-- `web.yml`: `npm ci`, lint, test, build SSR, presupuesto de bundle.
-- `deploy.yml` (tag `v*`): push a GHCR → SSH al VPS → `docker compose pull && up -d` → healthcheck → rollback si falla.
+- `api.yml`: `mvn -B verify` con Testcontainers + JaCoCo + build de imagen GHCR.
+- `web.yml`: `npm ci`, tests, build SSR, e2e + axe + Lighthouse y build de imagen GHCR.
+- `deploy.yml` (repo de deploy): valida Compose/Caddyfile/ShellCheck y, por
+  `workflow_dispatch`, despliega por SSH con healthchecks, smoke test y rollback.
 
-**Producción (escenario 1)**
-- Hetzner CX22 (~4–5 €/mes) con Docker Compose y Caddy (TLS automático).
-- Cloudflare delante (CDN + caché de estáticos).
-- R2 para imágenes.
-- `pg_dump` diario cifrado a R2, retención 14 días, restauración probada una vez al mes.
-- Actuator + Uptime Kuma + alertas por email.
-- Logs JSON a stdout; rotación de Docker.
+**Producción**
+- VPS Ubuntu/Debian con Docker Compose. Solo Caddy publica 80/443; PostgreSQL, API y web
+  quedan en redes internas.
+- Imágenes de GHCR (`latest` + SHA). El servidor no compila.
+- Caddy con TLS automático de Let's Encrypt, redirección `www` → apex, HSTS, CSP y
+  cabeceras de seguridad.
+- Secretos en `.env.prod` (600, gitignored), generado por `ops/generate-env.sh`.
+- `pg_dump` + volumen de medios empaquetados y cifrables con age; timer diario, retención
+  de 14 días y restauración probada con `ops/restore-backup.sh`.
+- Healthcheck cada 2 minutos con alertas por webhook; logs JSON rotados por Docker.
+- Hardening: UFW, fail2ban, unattended-upgrades, SSH por clave y contenedores sin
+  privilegios.
+- Cloudflare/R2 son opcionales; la implementación actual sirve medios desde el volumen
+  local y no depende de CDN.
+
+El runbook completo está en [`06-produccion.md`](./06-produccion.md).
 
 ---
 
@@ -343,7 +353,7 @@ web/src/app/
 | **M2 Redacción** ✅ | Auth con roles, CRUD, editor Markdown, media, revisiones | 2 semanas | Publicar un artículo con portada e imágenes sin tocar la BD |
 | **M3 SEO** ✅ | Sitemap, robots, RSS global y por categoría, JSON-LD, prerender selectivo, 404/410 ya en M1 | 1 semana | Rich Results válidos; sitemap enviado a Search Console |
 | **M4 Calidad** ✅ | Testcontainers, cobertura, e2e Playwright, a11y AA, Lighthouse | 1 semana | Cobertura de servicios > 70 %, Lighthouse ≥ 90/95, 0 violaciones axe |
-| **M5 Producción** | VPS, dominio, TLS, backups, monitorización, RGPD | 1 semana | Dominio real con HTTPS, backup restaurado con éxito |
+| **M5 Producción** | VPS, dominio, TLS, backups, monitorización, RGPD | 1 semana | Infraestructura implementada y validada; falta el despliegue real con VPS/dominio y backup restaurado en producción |
 | **M6 Crecimiento** | Newsletter doble opt-in, más roles, comentarios, relacionadas | según demanda | — |
 
 Total MVP: **~250–350 h**.

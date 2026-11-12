@@ -11,6 +11,14 @@ management:
       exposure:
         include: health,info
 
+# La documentación interactiva no se publica en producción. Caddy también
+# bloquea /swagger-ui* y /v3/api-docs* por si acaso.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
 logging:
   level:
     root: INFO

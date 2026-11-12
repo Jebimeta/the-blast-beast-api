@@ -203,6 +203,7 @@ nativa para generar las variantes WebP. En Alpine caerían a PNG. Los medios se 
 - [M2 — Redacción: auth, CRUD, medios, revisiones y panel](./docs/03-redaccion.md)
 - [M3 — SEO técnico: sitemap, robots, RSS, JSON-LD y prerender selectivo](./docs/04-seo.md)
 - [M4 — Calidad: Testcontainers, cobertura, e2e, accesibilidad y rendimiento](./docs/05-calidad.md)
+- [M5 — Producción: VPS, TLS, backups, monitorización y RGPD](./docs/06-produccion.md)
 
 ## Roadmap
 
@@ -211,7 +212,13 @@ nativa para generar las variantes WebP. En Alpine caerían a PNG. Los medios se 
 - [x] **M2** Redacción: JWT con refresh en cookie HttpOnly, CRUD, medios, revisiones
 - [x] **M3** SEO: sitemap, robots, RSS, JSON-LD y prerender selectivo
 - [x] **M4** Calidad: Testcontainers, JaCoCo, Playwright, axe AA y Lighthouse
-- [ ] **M5** Producción: VPS, TLS, backups, monitorización
+- [ ] **M5** Producción: infraestructura, TLS, backups y monitorización implementados y
+  validados en local; falta el despliegue real (VPS, dominio, SSH y datos legales)
+
+En producción la API se ejecuta con `SPRING_PROFILES_ACTIVE=prod`, sin seed, con
+`ddl-auto: validate`, Flyway activo y springdoc desactivado. El stack completo, los
+secretos y el runbook están en
+[`docs/06-produccion.md`](./docs/06-produccion.md).
 
 ## Licencia
 

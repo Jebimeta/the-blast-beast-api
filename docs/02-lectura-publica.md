@@ -144,4 +144,5 @@ Verificado con `curl` contra Caddy en `:8088`:
 - `PingControllerTest`: 1 test.
 - Frontend: 2 archivos, 3 tests (portada con datos y vacía, shell con header/footer).
 
-Pendiente en M4: Testcontainers, e2e Playwright y auditoría a11y.
+Cubierto en M4: Testcontainers, e2e Playwright y auditoría a11y. Ver
+[`05-calidad.md`](./05-calidad.md).
