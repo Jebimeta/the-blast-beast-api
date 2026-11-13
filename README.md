@@ -116,7 +116,9 @@ con usuario y contraseña `blastbeast`.
 ```
 
 El perfil `dev` aplica `src/main/resources/db/dev/R__seed.sql`; `local` además activa el log
-SQL. Ningún perfil de producción carga datos de ejemplo.
+SQL. En ambos, `DevMediaSeeder` asigna portadas de ejemplo desde `db/dev/media` (fotos de
+Wikimedia Commons con crédito y licencia) a las noticias del seed que no tengan portada
+propia. Ningún perfil de producción carga datos de ejemplo.
 
 Credenciales del seed de desarrollo:
 
