@@ -4,8 +4,6 @@ import com.theblastbeast.domain.entity.Article;
 import com.theblastbeast.domain.entity.ArticleStatus;
 import com.theblastbeast.domain.entity.Band;
 import com.theblastbeast.domain.entity.Category;
-import com.theblastbeast.domain.entity.Concert;
-import com.theblastbeast.domain.entity.ConcertStatus;
 import com.theblastbeast.domain.entity.MediaAsset;
 import com.theblastbeast.domain.vo.MediaAssetKind;
 import com.theblastbeast.domain.vo.MediaSummary;
@@ -14,7 +12,6 @@ import com.theblastbeast.properties.SiteProperties;
 import com.theblastbeast.repository.ArticleRepository;
 import com.theblastbeast.repository.BandRepository;
 import com.theblastbeast.repository.CategoryRepository;
-import com.theblastbeast.repository.ConcertRepository;
 import com.theblastbeast.util.XmlSupport;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
@@ -23,7 +20,6 @@ import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,7 +41,6 @@ public class SitemapService {
     private final ArticleRepository articleRepository;
     private final CategoryRepository categoryRepository;
     private final BandRepository bandRepository;
-    private final ConcertRepository concertRepository;
     private final MediaService mediaService;
     private final SiteProperties siteProperties;
 
@@ -58,10 +53,6 @@ public class SitemapService {
         List<Category> categories = categoryRepository.findAll(
                 Sort.by("sortOrder").ascending().and(Sort.by("name").ascending()));
         List<Band> bands = bandRepository.findAll(Sort.by("name").ascending());
-        List<Concert> concerts = concertRepository.findUpcomingForSitemap(
-                List.of(ConcertStatus.CANCELLED, ConcertStatus.ARCHIVED),
-                OffsetDateTime.now(),
-                PageRequest.of(0, 5000));
 
         List<MediaAsset> covers = articles.stream()
                 .map(Article::getCoverMedia)
@@ -85,7 +76,6 @@ public class SitemapService {
 
         appendUrl(xml, base + "/", latest, "hourly", "1.0", null);
         appendUrl(xml, base + "/articulos", latest, "daily", "0.8", null);
-        appendUrl(xml, base + "/agenda", null, "daily", "0.8", null);
 
         for (Category category : categories) {
             appendUrl(xml, base + "/categorias/" + category.getSlug(),
@@ -100,14 +90,9 @@ public class SitemapService {
                     XmlSupport.lastmod(article.getUpdatedAt()), "weekly", "0.7",
                     cover == null ? null : heroUrl(coversById.get(cover.getId())));
         }
-        for (Concert concert : concerts) {
-            appendUrl(xml, base + "/agenda/" + concert.getSlug(),
-                    XmlSupport.lastmod(concert.getUpdatedAt()), "weekly", "0.6", null);
-        }
 
         xml.append("</urlset>\n");
-        log.debug("END - SitemapService -> build() - {} artículos, {} conciertos",
-                articles.size(), concerts.size());
+        log.debug("END - SitemapService -> build() - {} artículos", articles.size());
         return xml.toString();
     }
 
