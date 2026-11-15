@@ -5,7 +5,6 @@ import com.theblastbeast.domain.entity.ArticleStatus;
 import com.theblastbeast.domain.entity.Band;
 import com.theblastbeast.domain.entity.Category;
 import com.theblastbeast.domain.entity.MediaAsset;
-import com.theblastbeast.domain.entity.Release;
 import com.theblastbeast.domain.vo.MediaAssetKind;
 import com.theblastbeast.domain.vo.MediaSummary;
 import com.theblastbeast.domain.vo.MediaVariant;
@@ -13,7 +12,6 @@ import com.theblastbeast.properties.SiteProperties;
 import com.theblastbeast.repository.ArticleRepository;
 import com.theblastbeast.repository.BandRepository;
 import com.theblastbeast.repository.CategoryRepository;
-import com.theblastbeast.repository.ReleaseRepository;
 import com.theblastbeast.util.XmlSupport;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
@@ -43,7 +41,6 @@ public class SitemapService {
     private final ArticleRepository articleRepository;
     private final CategoryRepository categoryRepository;
     private final BandRepository bandRepository;
-    private final ReleaseRepository releaseRepository;
     private final MediaService mediaService;
     private final SiteProperties siteProperties;
 
@@ -56,9 +53,6 @@ public class SitemapService {
         List<Category> categories = categoryRepository.findAll(
                 Sort.by("sortOrder").ascending().and(Sort.by("name").ascending()));
         List<Band> bands = bandRepository.findAll(Sort.by("name").ascending());
-        Release latestRelease = releaseRepository
-                .findTopByHiddenFalseOrderByUpdatedAtDesc()
-                .orElse(null);
 
         List<MediaAsset> covers = articles.stream()
                 .map(Article::getCoverMedia)
@@ -82,9 +76,6 @@ public class SitemapService {
 
         appendUrl(xml, base + "/", latest, "hourly", "1.0", null);
         appendUrl(xml, base + "/articulos", latest, "daily", "0.8", null);
-        appendUrl(xml, base + "/radar",
-                latestRelease == null ? null : XmlSupport.lastmod(latestRelease.getUpdatedAt()),
-                "daily", "0.8", null);
 
         for (Category category : categories) {
             appendUrl(xml, base + "/categorias/" + category.getSlug(),

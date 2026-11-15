@@ -99,7 +99,8 @@ banda, el sello o la promotora.
 El modelo guarda título, artista, banda opcional, tipo (`album`, `ep`, `single`, `live`,
 `compilation`), fecha, género, sello, enlace de escucha, nota, destacado y oculto. El slug se
 genera con artista, título y año; los enlaces de escucha deben empezar por `http(s)://`.
-Los lanzamientos ocultos no aparecen en la API pública, el `.ics` ni el sitemap.
+Los lanzamientos ocultos no aparecen en la API pública ni en el `.ics`. La sección pública
+del portal está oculta hasta su lanzamiento; la API y el CRUD editorial siguen operativos.
 
 ## SEO técnico y sindicación (M3)
 
@@ -174,7 +175,7 @@ Flyway aplica las migraciones `V1`–`V3` en el primer arranque: 16 tablas de do
 ./mvnw verify
 ```
 
-**Tests unitarios** (Surefire, sin base de datos): 57 tests con JUnit 5, AssertJ y Mockito
+**Tests unitarios** (Surefire, sin base de datos): 56 tests con JUnit 5, AssertJ y Mockito
 sobre servicios, mappers y controladores.
 
 **Tests de integración** (Failsafe, PostgreSQL real): 55 tests en `src/test/java/com/theblastbeast/it`
@@ -185,7 +186,7 @@ sitemap/robots/feeds.
 
 **Cobertura** (JaCoCo): el build falla si la cobertura de líneas de
 `com.theblastbeast.service` baja del 70 %. El informe se genera en `target/site/jacoco/`.
-Cobertura actual: **92,6 % de líneas** y 68,3 % de ramas.
+Cobertura actual: **92,5 % de líneas** y 67,8 % de ramas.
 
 > Los tests de integración necesitan Docker en marcha. En CI, `ubuntu-latest` ya lo incluye.
 > Un único contenedor `postgres:17-alpine` se reutiliza durante toda la ejecución; entre
