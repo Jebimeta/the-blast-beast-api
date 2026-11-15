@@ -13,11 +13,12 @@ set password_hash = excluded.password_hash,
     role = excluded.role;
 
 insert into categories (slug, name, description, sort_order) values
-    ('noticias', 'Noticias', 'Lo que pasa en la escena, sin ruido.', 1),
+    ('noticias', 'Noticias', 'El Rugido de la Escena.', 1),
     ('conciertos', 'Conciertos', 'Giras, festivales y fechas confirmadas.', 2),
     ('lanzamientos', 'Lanzamientos', 'Discos, singles y adelantos.', 3),
     ('entrevistas', 'Entrevistas', 'Conversaciones largas con quien hace la música.', 4)
-on conflict (slug) do nothing;
+on conflict (slug) do update
+set description = excluded.description;
 
 insert into bands (slug, name, country, formed_year, genre, website, bandcamp_url, spotify_url) values
     ('metallica', 'Metallica', 'Estados Unidos', 1981, 'Thrash metal', 'https://www.metallica.com', null, null),
