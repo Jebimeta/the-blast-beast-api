@@ -47,6 +47,8 @@ public class SecurityConfig {
                                 "/api/v1/categories",
                                 "/api/v1/bands/**",
                                 "/api/v1/search",
+                                "/api/v1/releases",
+                                "/api/v1/releases/**",
                                 "/api/v1/concerts",
                                 "/api/v1/concerts/**",
                                 "/media/**")

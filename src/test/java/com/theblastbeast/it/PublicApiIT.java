@@ -105,6 +105,18 @@ class PublicApiIT extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("el artículo aleatorio solo devuelve publicados")
+    void articuloAleatorio() {
+        ResponseEntity<ArticleSummary> response = rest.getForEntity(
+                "/api/v1/articles/random", ArticleSummary.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getSlug())
+                .isIn("metallica-anuncia-gira", "opeth-anuncia-disco");
+    }
+
+    @Test
     @DisplayName("el detalle incluye cuerpo, autor, bandas y etiquetas")
     void detalleCompleto() {
         ResponseEntity<ArticleDetail> response = rest.getForEntity(

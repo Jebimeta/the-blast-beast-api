@@ -1,6 +1,7 @@
 package com.theblastbeast.config;
 
 import com.theblastbeast.domain.vo.ArticleSort;
+import com.theblastbeast.domain.vo.ReleaseType;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.format.FormatterRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -16,5 +17,6 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addFormatters(FormatterRegistry registry) {
         registry.addConverter(String.class, ArticleSort.class, ArticleSort::fromValue);
+        registry.addConverter(String.class, ReleaseType.class, ReleaseType::fromValue);
     }
 }

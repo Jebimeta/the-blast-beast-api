@@ -16,6 +16,7 @@ import com.theblastbeast.repository.ArticleRepository;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -59,6 +60,24 @@ public class ArticleService {
                 articleRepository.findByStatusOrderByPublishedAtDesc(
                         ArticleStatus.PUBLISHED, PageRequest.of(0, FEATURED_SIZE)));
         log.debug("END - ArticleService -> featured() - {} artículos", response.size());
+        return response;
+    }
+
+    @Transactional(readOnly = true)
+    public ArticleSummary random() {
+        log.debug("INIT - ArticleService -> random()");
+        long total = articleRepository.countByStatus(ArticleStatus.PUBLISHED);
+        if (total == 0) {
+            throw new BusinessException(ErrorCode.ARTICLE_NOT_FOUND);
+        }
+        int offset = ThreadLocalRandom.current().nextInt((int) total);
+        List<Article> candidates = articleRepository.findByStatusOrderByPublishedAtDesc(
+                ArticleStatus.PUBLISHED, PageRequest.of(offset, 1));
+        if (candidates.isEmpty()) {
+            throw new BusinessException(ErrorCode.ARTICLE_NOT_FOUND);
+        }
+        ArticleSummary response = toSummaries(candidates).get(0);
+        log.debug("END - ArticleService -> random() - slug={}", response.getSlug());
         return response;
     }
 

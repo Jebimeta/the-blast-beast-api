@@ -42,6 +42,10 @@ public enum ErrorCode {
     // Agenda
     CONCERT_NOT_FOUND(HttpStatus.NOT_FOUND, "CON-001", "Concierto no encontrado"),
 
+    // Radar de lanzamientos
+    RELEASE_NOT_FOUND(HttpStatus.NOT_FOUND, "REL-001", "Lanzamiento no encontrado"),
+    RELEASE_BAND_NOT_FOUND(HttpStatus.NOT_FOUND, "REL-002", "La banda indicada no existe"),
+
     // Medios
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "MED-001", "Formato de archivo no admitido"),
     MEDIA_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "MED-002", "El archivo supera el tamaño máximo"),

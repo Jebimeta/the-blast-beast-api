@@ -6,6 +6,8 @@ import com.theblastbeast.domain.entity.Article;
 import com.theblastbeast.domain.entity.ArticleStatus;
 import com.theblastbeast.domain.entity.Band;
 import com.theblastbeast.domain.entity.Category;
+import com.theblastbeast.domain.entity.Release;
+import com.theblastbeast.domain.entity.ReleaseKind;
 import com.theblastbeast.domain.entity.Role;
 import com.theblastbeast.domain.entity.Tag;
 import com.theblastbeast.domain.entity.User;
@@ -16,9 +18,11 @@ import com.theblastbeast.repository.BandRepository;
 import com.theblastbeast.repository.CategoryRepository;
 import com.theblastbeast.repository.ConcertRepository;
 import com.theblastbeast.repository.MediaAssetRepository;
+import com.theblastbeast.repository.ReleaseRepository;
 import com.theblastbeast.repository.TagRepository;
 import com.theblastbeast.repository.UserRepository;
 import com.theblastbeast.repository.VenueRepository;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -100,6 +104,9 @@ public abstract class AbstractIntegrationTest {
     @Autowired
     protected MediaAssetRepository mediaAssetRepository;
 
+    @Autowired
+    protected ReleaseRepository releaseRepository;
+
     @BeforeEach
     void prepareTest() {
         // Los tests negocian errores ProblemDetail sin depender del Accept del cliente.
@@ -110,7 +117,7 @@ public abstract class AbstractIntegrationTest {
         jdbcTemplate.execute("""
                 truncate table concert_artists, concerts, venues, concert_sync_runs,
                     refresh_tokens, article_revisions, article_tags, article_bands,
-                    media_assets, articles, tags, bands, categories, users
+                    releases, media_assets, articles, tags, bands, categories, users
                 restart identity cascade
                 """);
     }
@@ -149,6 +156,23 @@ public abstract class AbstractIntegrationTest {
         band.setCountry("España");
         band.setGenre("Heavy Metal");
         return bandRepository.saveAndFlush(band);
+    }
+
+    protected Release seedRelease(String slug, String title, String artistName, Band band,
+            ReleaseKind kind, LocalDate releaseDate, String genre) {
+        Release release = new Release();
+        release.setSlug(slug);
+        release.setTitle(title);
+        release.setArtistName(artistName);
+        release.setBand(band);
+        release.setKind(kind);
+        release.setReleaseDate(releaseDate);
+        release.setGenre(genre);
+        release.setGenreSlug(genre == null ? null : genre.toLowerCase().replace(' ', '-'));
+        release.setLabel("Sello de prueba");
+        release.setFeatured(false);
+        release.setHidden(false);
+        return releaseRepository.saveAndFlush(release);
     }
 
     protected Tag seedTag(String slug, String name) {

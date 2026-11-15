@@ -29,6 +29,8 @@ tags:
     description: Bandas mencionadas
   - name: search
     description: Búsqueda full-text
+  - name: releases
+    description: Radar de lanzamientos musicales
   - name: concerts
     description: Agenda de conciertos en España
   - name: admin-concerts
@@ -43,6 +45,8 @@ tags:
     description: Gestión de bandas
   - name: admin-tags
     description: Gestión de etiquetas
+  - name: admin-releases
+    description: Gestión editorial del radar de lanzamientos
   - name: admin-media
     description: Biblioteca de medios
 
@@ -123,6 +127,22 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ArticleSummary'
+
+  /api/v1/articles/random:
+    get:
+      tags:
+        - articles
+      operationId: getRandomArticle
+      summary: Artículo publicado aleatorio
+      responses:
+        '200':
+          description: Artículo publicado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ArticleSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /api/v1/articles/{slug}:
     get:
@@ -209,6 +229,77 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ArticlePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  # -------------------------------------------------------------------
+  # Radar de lanzamientos
+  # -------------------------------------------------------------------
+  /api/v1/releases:
+    get:
+      tags:
+        - releases
+      operationId: listReleases
+      summary: Lanzamientos de un mes, ordenados por fecha
+      parameters:
+        - name: month
+          in: query
+          description: Mes en formato YYYY-MM; por defecto, el mes actual
+          schema:
+            type: string
+            pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+            example: '2026-11'
+        - name: genre
+          in: query
+          description: Slug del género
+          schema:
+            type: string
+        - name: type
+          in: query
+          description: Tipo de lanzamiento
+          schema:
+            $ref: '#/components/schemas/ReleaseType'
+        - $ref: '#/components/parameters/Page'
+        - name: size
+          in: query
+          description: Tamaño de página (máximo 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Lanzamientos del mes con facetas para filtrar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleasePage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/releases/calendar.ics:
+    get:
+      tags:
+        - releases
+      operationId: releaseCalendar
+      summary: Calendario iCalendar de los próximos lanzamientos
+      parameters:
+        - name: months
+          in: query
+          description: Meses hacia delante incluidos en el calendario
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 24
+            default: 6
+      responses:
+        '200':
+          description: Calendario listo para suscribirse
+          content:
+            text/calendar:
+              schema:
+                type: string
         '400':
           $ref: '#/components/responses/BadRequest'
 
@@ -1011,6 +1102,127 @@ paths:
           $ref: '#/components/responses/NotFound'
 
   # -------------------------------------------------------------------
+  # Radar de lanzamientos (redacción)
+  # -------------------------------------------------------------------
+  /api/v1/admin/releases:
+    get:
+      tags:
+        - admin-releases
+      operationId: listAdminReleases
+      summary: Lanzamientos para gestión editorial
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: q
+          in: query
+          description: Texto libre sobre título, artista o sello
+          schema:
+            type: string
+        - name: month
+          in: query
+          description: Mes en formato YYYY-MM
+          schema:
+            type: string
+            pattern: '^\d{4}-(0[1-9]|1[0-2])$'
+      responses:
+        '200':
+          description: Lanzamientos ordenados por fecha
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ReleaseAdminResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags:
+        - admin-releases
+      operationId: createAdminRelease
+      summary: Crea un lanzamiento
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseWriteRequest'
+      responses:
+        '201':
+          description: Lanzamiento creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseAdminResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /api/v1/admin/releases/{id}:
+    put:
+      tags:
+        - admin-releases
+      operationId: updateAdminRelease
+      summary: Actualiza un lanzamiento
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReleaseWriteRequest'
+      responses:
+        '200':
+          description: Lanzamiento actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReleaseAdminResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags:
+        - admin-releases
+      operationId: deleteAdminRelease
+      summary: Elimina un lanzamiento
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Lanzamiento eliminado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # -------------------------------------------------------------------
   # Medios (redacción)
   # -------------------------------------------------------------------
   /api/v1/admin/media:
@@ -1366,6 +1578,204 @@ components:
         first:
           type: boolean
         last:
+          type: boolean
+
+    ReleaseType:
+      type: string
+      enum:
+        - album
+        - ep
+        - single
+        - live
+        - compilation
+
+    ReleaseSummary:
+      type: object
+      required:
+        - id
+        - slug
+        - title
+        - artistName
+        - type
+        - releaseDate
+        - featured
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        title:
+          type: string
+        artistName:
+          type: string
+        band:
+          $ref: '#/components/schemas/BandSummary'
+        type:
+          $ref: '#/components/schemas/ReleaseType'
+        releaseDate:
+          type: string
+          format: date
+        genre:
+          type: string
+        label:
+          type: string
+        listenUrl:
+          type: string
+        notes:
+          type: string
+        featured:
+          type: boolean
+
+    ReleaseFacet:
+      type: object
+      required:
+        - value
+        - label
+        - count
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+        count:
+          type: integer
+          format: int64
+
+    ReleasePage:
+      type: object
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+        - first
+        - last
+        - month
+        - genres
+        - types
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReleaseSummary'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        first:
+          type: boolean
+        last:
+          type: boolean
+        month:
+          type: string
+          example: '2026-11'
+        genres:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReleaseFacet'
+        types:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReleaseFacet'
+
+    ReleaseAdminResponse:
+      type: object
+      required:
+        - id
+        - slug
+        - title
+        - artistName
+        - type
+        - releaseDate
+        - featured
+        - hidden
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        title:
+          type: string
+        artistName:
+          type: string
+        band:
+          $ref: '#/components/schemas/BandSummary'
+        bandId:
+          type: integer
+          format: int64
+        type:
+          $ref: '#/components/schemas/ReleaseType'
+        releaseDate:
+          type: string
+          format: date
+        genre:
+          type: string
+        label:
+          type: string
+        listenUrl:
+          type: string
+        notes:
+          type: string
+        featured:
+          type: boolean
+        hidden:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ReleaseWriteRequest:
+      type: object
+      required:
+        - title
+        - artistName
+        - type
+        - releaseDate
+      properties:
+        title:
+          type: string
+          minLength: 2
+          maxLength: 200
+        artistName:
+          type: string
+          minLength: 2
+          maxLength: 160
+        bandId:
+          type: integer
+          format: int64
+        type:
+          $ref: '#/components/schemas/ReleaseType'
+        releaseDate:
+          type: string
+          format: date
+        genre:
+          type: string
+          maxLength: 80
+        label:
+          type: string
+          maxLength: 120
+        listenUrl:
+          type: string
+          maxLength: 600
+        notes:
+          type: string
+          maxLength: 500
+        featured:
+          type: boolean
+        hidden:
           type: boolean
 
     CategorySummary:

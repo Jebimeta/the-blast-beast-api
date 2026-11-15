@@ -10,6 +10,7 @@ import com.theblastbeast.domain.entity.ArticleStatus;
 import com.theblastbeast.domain.entity.Band;
 import com.theblastbeast.domain.entity.Category;
 import com.theblastbeast.domain.entity.MediaAsset;
+import com.theblastbeast.domain.entity.Release;
 import com.theblastbeast.domain.entity.User;
 import com.theblastbeast.domain.vo.MediaAssetKind;
 import com.theblastbeast.domain.vo.MediaSummary;
@@ -18,9 +19,11 @@ import com.theblastbeast.properties.SiteProperties;
 import com.theblastbeast.repository.ArticleRepository;
 import com.theblastbeast.repository.BandRepository;
 import com.theblastbeast.repository.CategoryRepository;
+import com.theblastbeast.repository.ReleaseRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +48,9 @@ class SitemapServiceTest {
     private BandRepository bandRepository;
 
     @Mock
+    private ReleaseRepository releaseRepository;
+
+    @Mock
     private MediaService mediaService;
 
     private SitemapService sitemapService;
@@ -54,8 +60,8 @@ class SitemapServiceTest {
 
     @BeforeEach
     void setUp() {
-        sitemapService = new SitemapService(
-                articleRepository, categoryRepository, bandRepository, mediaService, PROPERTIES);
+        sitemapService = new SitemapService(articleRepository, categoryRepository,
+                bandRepository, releaseRepository, mediaService, PROPERTIES);
 
         category = new Category();
         category.setId(1L);
@@ -98,6 +104,7 @@ class SitemapServiceTest {
         assertThat(xml).startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/articulos</loc>");
+        assertThat(xml).contains("<loc>https://theblastbeast.test/radar</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/categorias/noticias</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/bandas/metallica</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/articulos/metallica-anuncia-gira</loc>");
@@ -129,6 +136,30 @@ class SitemapServiceTest {
 
         assertThat(xml).contains(
                 "<image:loc>https://theblastbeast.test/media/portada-hero.webp</image:loc>");
+    }
+
+    @Test
+    @DisplayName("el radar usa la última actualización de sus lanzamientos")
+    void radarUsaUltimaActualizacion() {
+        Release release = new Release();
+        release.setId(3L);
+        release.setSlug("metallica-forge");
+        release.setTitle("The Forge of Fury");
+        release.setArtistName("Metallica");
+        release.setUpdatedAt(OffsetDateTime.parse("2026-11-09T09:30:00Z"));
+
+        when(articleRepository.findAllByStatusWithCover(ArticleStatus.PUBLISHED))
+                .thenReturn(List.of());
+        when(categoryRepository.findAll(any(Sort.class))).thenReturn(List.of());
+        when(bandRepository.findAll(any(Sort.class))).thenReturn(List.of());
+        when(releaseRepository.findTopByHiddenFalseOrderByUpdatedAtDesc())
+                .thenReturn(Optional.of(release));
+        when(mediaService.toSummaryMap(any())).thenReturn(Map.of());
+
+        String xml = sitemapService.build();
+
+        assertThat(xml).contains("<loc>https://theblastbeast.test/radar</loc>");
+        assertThat(xml).contains("<lastmod>2026-11-09T09:30:00Z</lastmod>");
     }
 
     @Test

@@ -17,6 +17,8 @@ public interface ArticleRepository extends JpaRepository<Article, Long>,
 
     List<Article> findByStatusOrderByPublishedAtDesc(ArticleStatus status, Pageable pageable);
 
+    long countByStatus(ArticleStatus status);
+
     long countByCategoryId(Long categoryId);
 
     boolean existsByBandsId(Long bandId);

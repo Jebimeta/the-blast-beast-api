@@ -292,3 +292,47 @@ from (values
 join articles a on a.slug = v.article_slug
 join tags t on t.slug = v.tag_slug
 on conflict do nothing;
+
+-- ---------------------------------------------------------------------
+-- Radar de lanzamientos: mes actual y siguiente
+-- Las fechas se calculan respecto a hoy para que la demo siempre tenga
+-- contenido reciente, pero los slugs son estables para no duplicar filas.
+-- ---------------------------------------------------------------------
+insert into releases (slug, title, artist_name, band_id, type, release_date,
+                      genre, genre_slug, label, listen_url, notes, featured)
+select
+    v.slug, v.title, v.artist_name, b.id, v.type, v.release_date,
+    v.genre, v.genre_slug, v.label, v.listen_url, v.notes, v.featured
+from (values
+    ('metallica-the-forge-of-fury-2027', 'The Forge of Fury', 'Metallica', 'metallica',
+     'ALBUM', (date_trunc('month', current_date) + interval '4 days')::date,
+     'Thrash metal', 'thrash-metal', 'Blackened Recordings', null,
+     'Primer disco de estudio desde 72 Seasons.', true),
+    ('opeth-the-last-will-and-testament-2027', 'The Last Will and Testament', 'Opeth', 'opeth',
+     'ALBUM', (date_trunc('month', current_date) + interval '11 days')::date,
+     'Progressive metal', 'progressive-metal', 'Atomic Fire', null,
+     'El regreso de Opeth al death metal progresivo.', true),
+    ('gojira-the-silent-tide-single', 'The Silent Tide', 'Gojira', 'gojira',
+     'SINGLE', (date_trunc('month', current_date) + interval '2 days')::date,
+     'Progressive death metal', 'progressive-death-metal', 'Roadrunner Records', null,
+     'Primer adelanto del próximo disco.', false),
+    ('judas-priest-shield-of-the-north', 'Shield of the North', 'Judas Priest', 'judas-priest',
+     'ALBUM', (date_trunc('month', current_date) + interval '1 month' + interval '8 days')::date,
+     'Heavy metal', 'heavy-metal', 'Columbia Records', null,
+     'Sucesor de Invincible Shield, producido por Andy Sneap.', true),
+    ('sabaton-legends-of-the-winter-war', 'Legends of the Winter War', 'Sabaton', 'sabaton',
+     'EP', (date_trunc('month', current_date) + interval '1 month' + interval '15 days')::date,
+     'Power metal', 'power-metal', 'Nuclear Blast', null,
+     'Cuatro temas sobre la guerra de invierno.', false),
+    ('nightwish-decades-of-silence', 'Decades of Silence', 'Nightwish', null,
+     'COMPILATION', (date_trunc('month', current_date) + interval '18 days')::date,
+     'Symphonic metal', 'symphonic-metal', 'Nuclear Blast', null,
+     'Recopilatorio con dos temas inéditos de la era Floor Jansen.', false),
+    ('iron-maiden-live-after-death-2027', 'Live After Death 2027', 'Iron Maiden', 'iron-maiden',
+     'LIVE', (date_trunc('month', current_date) + interval '1 month' + interval '22 days')::date,
+     'Heavy metal', 'heavy-metal', 'Parlophone', null,
+     'Grabación del regreso a los estadios europeos.', false)
+) as v(slug, title, artist_name, band_slug, type, release_date,
+       genre, genre_slug, label, listen_url, notes, featured)
+left join bands b on b.slug = v.band_slug
+on conflict (slug) do nothing;

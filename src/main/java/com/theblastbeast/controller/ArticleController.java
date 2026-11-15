@@ -47,6 +47,15 @@ public class ArticleController implements ArticlesApiDelegate {
     }
 
     @Override
+    public ResponseEntity<ArticleSummary> getRandomArticle() {
+        log.debug("INIT - ArticleController -> getRandomArticle()");
+        ResponseEntity<ArticleSummary> response =
+                ResponseEntity.ok(articleService.random());
+        log.debug("END - ArticleController -> getRandomArticle()");
+        return response;
+    }
+
+    @Override
     public ResponseEntity<ArticleDetail> getArticle(String slug) {
         log.debug("INIT - ArticleController -> getArticle() - slug={}", slug);
         ResponseEntity<ArticleDetail> response =

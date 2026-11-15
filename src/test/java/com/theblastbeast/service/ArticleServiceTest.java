@@ -125,6 +125,39 @@ class ArticleServiceTest {
     }
 
     @Test
+    @DisplayName("random devuelve un artículo publicado")
+    void randomDevuelvePublicado() {
+        ArticleSummary summary = new ArticleSummary();
+        when(articleRepository.countByStatus(ArticleStatus.PUBLISHED)).thenReturn(3L);
+        when(articleRepository.findByStatusOrderByPublishedAtDesc(
+                eq(ArticleStatus.PUBLISHED), any(Pageable.class)))
+                .thenReturn(List.of(article));
+        when(articleMapper.toSummaries(List.of(article))).thenReturn(List.of(summary));
+
+        ArticleSummary result = articleService.random();
+
+        assertThat(result).isSameAs(summary);
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(articleRepository).findByStatusOrderByPublishedAtDesc(
+                eq(ArticleStatus.PUBLISHED), pageableCaptor.capture());
+        assertThat(pageableCaptor.getValue().getPageSize()).isEqualTo(1);
+        assertThat(pageableCaptor.getValue().getOffset()).isBetween(0L, 2L);
+    }
+
+    @Test
+    @DisplayName("random lanza 404 cuando no hay artículos publicados")
+    void randomLanza404SinPublicados() {
+        when(articleRepository.countByStatus(ArticleStatus.PUBLISHED)).thenReturn(0L);
+
+        assertThatThrownBy(() -> articleService.random())
+                .isInstanceOfSatisfying(BusinessException.class,
+                        ex -> assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.ARTICLE_NOT_FOUND));
+
+        verify(articleRepository, never()).findByStatusOrderByPublishedAtDesc(
+                eq(ArticleStatus.PUBLISHED), any(Pageable.class));
+    }
+
+    @Test
     @DisplayName("detail devuelve el artículo publicado mapeado")
     void detailDevuelveArticuloPublicado() {
         ArticleDetail detail = new ArticleDetail();

@@ -41,6 +41,9 @@ properties/   -> @ConfigurationProperties tipadas y validadas
 | GET | `/api/v1/articles` | Listado paginado con `category`, `tag`, `band`, `q`, `sort`, `page`, `size` |
 | GET | `/api/v1/articles/featured` | Cinco noticias destacadas |
 | GET | `/api/v1/articles/{slug}` | Detalle; `404` si no existe o es borrador, `410` si está archivado |
+| GET | `/api/v1/articles/random` | Noticia publicada aleatoria para el 404 |
+| GET | `/api/v1/releases?month=` | Lanzamientos del mes con facetas de género y formato |
+| GET | `/api/v1/releases/calendar.ics` | Calendario iCalendar de los próximos meses |
 | GET | `/api/v1/categories` | Categorías con número de artículos publicados |
 | GET | `/api/v1/bands/{slug}` | Banda con sus noticias publicadas |
 | GET | `/api/v1/search?q=` | Búsqueda full-text en español (mínimo 2 caracteres) |
@@ -79,6 +82,25 @@ El panel usa `/api/v1/admin/**` (artículos, revisiones, taxonomía y medios) y
 
 Detalle completo en [M2 — Redacción](./docs/03-redaccion.md).
 
+## Radar de lanzamientos
+
+Datos editoriales, sin sincronización automática: solo entran fechas confirmadas por la
+banda, el sello o la promotora.
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/v1/releases?month=YYYY-MM&genre=&type=` | Listado del mes con facetas y paginación |
+| GET | `/api/v1/releases/calendar.ics?months=6` | `.ics` con los lanzamientos visibles |
+| GET | `/api/v1/admin/releases?q=&month=` | Listado editorial completo |
+| POST | `/api/v1/admin/releases` | Crear lanzamiento |
+| PUT | `/api/v1/admin/releases/{id}` | Actualizar lanzamiento |
+| DELETE | `/api/v1/admin/releases/{id}` | Eliminar lanzamiento |
+
+El modelo guarda título, artista, banda opcional, tipo (`album`, `ep`, `single`, `live`,
+`compilation`), fecha, género, sello, enlace de escucha, nota, destacado y oculto. El slug se
+genera con artista, título y año; los enlaces de escucha deben empezar por `http(s)://`.
+Los lanzamientos ocultos no aparecen en la API pública, el `.ics` ni el sitemap.
+
 ## SEO técnico y sindicación (M3)
 
 Recursos XML públicos en la raíz del dominio, servidos por la API y publicados por Caddy:
@@ -111,7 +133,7 @@ con usuario y contraseña `blastbeast`.
 # Solo esquema
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 
-# Esquema + contenido de ejemplo (8 noticias, 4 categorías, bandas y etiquetas)
+# Esquema + contenido de ejemplo (8 noticias, 4 categorías, bandas, etiquetas y radar)
 ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 ```
 
@@ -142,9 +164,9 @@ export DB_PASSWORD=blastbeast
 - Swagger UI: http://localhost:8080/swagger-ui.html
 - Health: http://localhost:8080/actuator/health
 
-Flyway aplica `src/main/resources/db/migration/V1__baseline.sql` en el primer arranque:
-11 tablas de dominio, `flyway_schema_history`, extensión `pg_trgm` y búsqueda full-text en
-español sobre `articles.search_vector`. No hay `ddl-auto: update`.
+Flyway aplica las migraciones `V1`–`V3` en el primer arranque: 16 tablas de dominio,
+`flyway_schema_history`, extensión `pg_trgm` y búsqueda full-text en español sobre
+`articles.search_vector`. No hay `ddl-auto: update`.
 
 ## Tests
 
@@ -152,17 +174,18 @@ español sobre `articles.search_vector`. No hay `ddl-auto: update`.
 ./mvnw verify
 ```
 
-**Tests unitarios** (Surefire, sin base de datos): 29 tests con JUnit 5, AssertJ y Mockito
+**Tests unitarios** (Surefire, sin base de datos): 57 tests con JUnit 5, AssertJ y Mockito
 sobre servicios, mappers y controladores.
 
-**Tests de integración** (Failsafe, PostgreSQL real): 41 tests en `src/test/java/com/theblastbeast/it`
+**Tests de integración** (Failsafe, PostgreSQL real): 55 tests en `src/test/java/com/theblastbeast/it`
 que arrancan un contenedor `postgres:17-alpine` con Testcontainers, aplican Flyway y prueban
 la API completa vía HTTP: lectura pública, autenticación y rotación de refrescos, CRUD
-editorial con revisiones, taxonomía, medios con variantes WebP, y sitemap/robots/feeds.
+editorial con revisiones, taxonomía, medios con variantes WebP, radar de lanzamientos y
+sitemap/robots/feeds.
 
 **Cobertura** (JaCoCo): el build falla si la cobertura de líneas de
 `com.theblastbeast.service` baja del 70 %. El informe se genera en `target/site/jacoco/`.
-Cobertura actual: **93,6 % de líneas** y 65,5 % de ramas.
+Cobertura actual: **92,6 % de líneas** y 68,3 % de ramas.
 
 > Los tests de integración necesitan Docker en marcha. En CI, `ubuntu-latest` ya lo incluye.
 > Un único contenedor `postgres:17-alpine` se reutiliza durante toda la ejecución; entre
