@@ -9,6 +9,7 @@ import com.theblastbeast.domain.entity.Article;
 import com.theblastbeast.domain.entity.ArticleStatus;
 import com.theblastbeast.domain.entity.Band;
 import com.theblastbeast.domain.entity.Category;
+import com.theblastbeast.domain.entity.Concert;
 import com.theblastbeast.domain.entity.MediaAsset;
 import com.theblastbeast.domain.entity.User;
 import com.theblastbeast.domain.vo.MediaAssetKind;
@@ -18,6 +19,7 @@ import com.theblastbeast.properties.SiteProperties;
 import com.theblastbeast.repository.ArticleRepository;
 import com.theblastbeast.repository.BandRepository;
 import com.theblastbeast.repository.CategoryRepository;
+import com.theblastbeast.repository.ConcertRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +47,9 @@ class SitemapServiceTest {
     private BandRepository bandRepository;
 
     @Mock
+    private ConcertRepository concertRepository;
+
+    @Mock
     private MediaService mediaService;
 
     private SitemapService sitemapService;
@@ -55,7 +60,9 @@ class SitemapServiceTest {
     @BeforeEach
     void setUp() {
         sitemapService = new SitemapService(
-                articleRepository, categoryRepository, bandRepository, mediaService, PROPERTIES);
+                articleRepository, categoryRepository, bandRepository, concertRepository,
+                mediaService, PROPERTIES);
+        when(concertRepository.findUpcomingForSitemap(any(), any(), any())).thenReturn(List.of());
 
         category = new Category();
         category.setId(1L);
@@ -103,6 +110,27 @@ class SitemapServiceTest {
         assertThat(xml).contains("<loc>https://theblastbeast.test/articulos/metallica-anuncia-gira</loc>");
         assertThat(xml).contains("<lastmod>2026-11-08T11:00:00Z</lastmod>");
         verify(articleRepository).findAllByStatusWithCover(ArticleStatus.PUBLISHED);
+    }
+
+    @Test
+    @DisplayName("incluye la agenda y las fichas de conciertos")
+    void incluyeAgendaYConciertos() {
+        Concert concert = new Concert();
+        concert.setSlug("metallica-madrid-2026-06-20");
+        concert.setUpdatedAt(OffsetDateTime.parse("2026-06-01T09:00:00Z"));
+        when(concertRepository.findUpcomingForSitemap(any(), any(), any()))
+                .thenReturn(List.of(concert));
+        when(articleRepository.findAllByStatusWithCover(ArticleStatus.PUBLISHED))
+                .thenReturn(List.of(article));
+        when(categoryRepository.findAll(any(Sort.class))).thenReturn(List.of(category));
+        when(bandRepository.findAll(any(Sort.class))).thenReturn(List.of(band));
+        when(mediaService.toSummaryMap(any())).thenReturn(Map.of());
+
+        String xml = sitemapService.build();
+
+        assertThat(xml).contains("<loc>https://theblastbeast.test/agenda</loc>");
+        assertThat(xml).contains(
+                "<loc>https://theblastbeast.test/agenda/metallica-madrid-2026-06-20</loc>");
     }
 
     @Test

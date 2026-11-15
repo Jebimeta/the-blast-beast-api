@@ -14,9 +14,11 @@ import com.theblastbeast.domain.vo.AuthResponse;
 import com.theblastbeast.repository.ArticleRepository;
 import com.theblastbeast.repository.BandRepository;
 import com.theblastbeast.repository.CategoryRepository;
+import com.theblastbeast.repository.ConcertRepository;
 import com.theblastbeast.repository.MediaAssetRepository;
 import com.theblastbeast.repository.TagRepository;
 import com.theblastbeast.repository.UserRepository;
+import com.theblastbeast.repository.VenueRepository;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -90,6 +92,12 @@ public abstract class AbstractIntegrationTest {
     protected ArticleRepository articleRepository;
 
     @Autowired
+    protected ConcertRepository concertRepository;
+
+    @Autowired
+    protected VenueRepository venueRepository;
+
+    @Autowired
     protected MediaAssetRepository mediaAssetRepository;
 
     @BeforeEach
@@ -100,7 +108,8 @@ public abstract class AbstractIntegrationTest {
             return execution.execute(request, body);
         }));
         jdbcTemplate.execute("""
-                truncate table refresh_tokens, article_revisions, article_tags, article_bands,
+                truncate table concert_artists, concerts, venues, concert_sync_runs,
+                    refresh_tokens, article_revisions, article_tags, article_bands,
                     media_assets, articles, tags, bands, categories, users
                 restart identity cascade
                 """);

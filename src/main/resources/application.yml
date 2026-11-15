@@ -97,6 +97,21 @@ blastbeast:
     max-upload-bytes: ${STORAGE_MAX_UPLOAD_BYTES:10485760}
     thumb-width: ${STORAGE_THUMB_WIDTH:480}
     hero-width: ${STORAGE_HERO_WIDTH:1600}
+  ticketmaster:
+    # La agenda permanece vacía hasta configurar la clave gratuita de
+    # https://developer.ticketmaster.com/. Sin clave, la sincronización se omite.
+    enabled: ${TICKETMASTER_ENABLED:false}
+    api-key: ${TICKETMASTER_API_KEY:}
+    base-url: ${TICKETMASTER_BASE_URL:https://app.ticketmaster.com/discovery/v2}
+    country-code: ${TICKETMASTER_COUNTRY_CODE:ES}
+    locale: ${TICKETMASTER_LOCALE:es}
+    sync-cron: "${TICKETMASTER_SYNC_CRON:0 0 */6 * * *}"
+    sync-days: ${TICKETMASTER_SYNC_DAYS:180}
+    window-days: ${TICKETMASTER_WINDOW_DAYS:7}
+    page-size: ${TICKETMASTER_PAGE_SIZE:200}
+    max-pages-per-window: ${TICKETMASTER_MAX_PAGES:5}
+    max-attempts: ${TICKETMASTER_MAX_ATTEMPTS:3}
+    request-interval: ${TICKETMASTER_REQUEST_INTERVAL:250ms}
 
 logging:
   level:

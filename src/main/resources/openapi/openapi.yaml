@@ -29,6 +29,10 @@ tags:
     description: Bandas mencionadas
   - name: search
     description: Búsqueda full-text
+  - name: concerts
+    description: Agenda de conciertos en España
+  - name: admin-concerts
+    description: Sincronización de la agenda
   - name: auth
     description: Sesión de la redacción
   - name: admin-articles
@@ -207,6 +211,116 @@ paths:
                 $ref: '#/components/schemas/ArticlePage'
         '400':
           $ref: '#/components/responses/BadRequest'
+
+  # -------------------------------------------------------------------
+  # Agenda de conciertos
+  # -------------------------------------------------------------------
+  /api/v1/concerts:
+    get:
+      tags:
+        - concerts
+      operationId: listConcerts
+      summary: Agenda de conciertos en España, ordenada por fecha
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - name: size
+          in: query
+          description: Tamaño de página (máximo 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: genre
+          in: query
+          description: Slug del género (metal, hard-rock, rock, punk, alternative…)
+          schema:
+            type: string
+        - name: city
+          in: query
+          description: Slug de la ciudad (madrid, barcelona, bilbao…)
+          schema:
+            type: string
+        - name: band
+          in: query
+          description: Nombre o slug de una banda presente en el cartel
+          schema:
+            type: string
+        - name: from
+          in: query
+          description: Fecha inicial inclusive (ISO 8601)
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          description: Fecha final inclusive (ISO 8601)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Página de conciertos próximos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConcertPage'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /api/v1/concerts/facets:
+    get:
+      tags:
+        - concerts
+      operationId: getConcertFacets
+      summary: Géneros, ciudades, bandas y días con conciertos para los filtros
+      responses:
+        '200':
+          description: Facetas de la agenda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConcertFacets'
+
+  /api/v1/concerts/{slug}:
+    get:
+      tags:
+        - concerts
+      operationId: getConcert
+      summary: Detalle de un concierto por slug
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Concierto encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConcertDetail'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/admin/concerts/sync:
+    post:
+      tags:
+        - admin-concerts
+      operationId: syncConcerts
+      summary: Fuerza una sincronización con Ticketmaster
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Resultado de la sincronización
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConcertSyncResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
   # -------------------------------------------------------------------
   # Autenticación
@@ -1352,6 +1466,316 @@ components:
         slug:
           type: string
         name:
+          type: string
+
+    # -----------------------------------------------------------------
+    # Agenda de conciertos
+    # -----------------------------------------------------------------
+    ConcertStatus:
+      type: string
+      enum:
+        - ON_SALE
+        - OFF_SALE
+        - POSTPONED
+        - RESCHEDULED
+        - CANCELLED
+
+    ConcertArtist:
+      type: object
+      required:
+        - slug
+        - name
+      properties:
+        slug:
+          type: string
+        name:
+          type: string
+        bandSlug:
+          type: string
+          description: Slug de la banda en la base editorial, si existe
+
+    VenueSummary:
+      type: object
+      required:
+        - id
+        - name
+        - city
+        - citySlug
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        city:
+          type: string
+        citySlug:
+          type: string
+        region:
+          type: string
+
+    VenueDetail:
+      type: object
+      required:
+        - id
+        - name
+        - city
+        - citySlug
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        city:
+          type: string
+        citySlug:
+          type: string
+        region:
+          type: string
+        address:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+
+    ConcertSummary:
+      type: object
+      required:
+        - id
+        - slug
+        - title
+        - startAt
+        - status
+        - genre
+        - genreLabel
+        - venue
+        - artists
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        title:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        timeTba:
+          type: boolean
+        status:
+          $ref: '#/components/schemas/ConcertStatus'
+        genre:
+          type: string
+        genreLabel:
+          type: string
+        venue:
+          $ref: '#/components/schemas/VenueSummary'
+        artists:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConcertArtist'
+        ticketUrl:
+          type: string
+        priceMin:
+          type: number
+          format: double
+        priceMax:
+          type: number
+          format: double
+        currency:
+          type: string
+        featured:
+          type: boolean
+
+    ConcertDetail:
+      type: object
+      required:
+        - id
+        - slug
+        - title
+        - startAt
+        - status
+        - genre
+        - genreLabel
+        - venue
+        - artists
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        startAt:
+          type: string
+          format: date-time
+        endAt:
+          type: string
+          format: date-time
+        timeTba:
+          type: boolean
+        status:
+          $ref: '#/components/schemas/ConcertStatus'
+        genre:
+          type: string
+        genreLabel:
+          type: string
+        venue:
+          $ref: '#/components/schemas/VenueDetail'
+        artists:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConcertArtist'
+        ticketUrl:
+          type: string
+        priceMin:
+          type: number
+          format: double
+        priceMax:
+          type: number
+          format: double
+        currency:
+          type: string
+        featured:
+          type: boolean
+        imageUrl:
+          type: string
+        imageAttribution:
+          type: string
+        source:
+          type: string
+        sourceUrl:
+          type: string
+
+    ConcertPage:
+      type: object
+      required:
+        - content
+        - page
+        - size
+        - totalElements
+        - totalPages
+        - first
+        - last
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConcertSummary'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+        first:
+          type: boolean
+        last:
+          type: boolean
+
+    FacetValue:
+      type: object
+      required:
+        - value
+        - label
+        - count
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+        count:
+          type: integer
+          format: int64
+
+    ConcertDayCount:
+      type: object
+      required:
+        - date
+        - count
+      properties:
+        date:
+          type: string
+          format: date
+        count:
+          type: integer
+          format: int64
+
+    ConcertFacets:
+      type: object
+      required:
+        - genres
+        - cities
+        - artists
+        - days
+      properties:
+        genres:
+          type: array
+          items:
+            $ref: '#/components/schemas/FacetValue'
+        cities:
+          type: array
+          items:
+            $ref: '#/components/schemas/FacetValue'
+        artists:
+          type: array
+          items:
+            $ref: '#/components/schemas/FacetValue'
+        days:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConcertDayCount'
+        earliest:
+          type: string
+          format: date
+        latest:
+          type: string
+          format: date
+
+    ConcertSyncResult:
+      type: object
+      required:
+        - status
+        - fetched
+        - created
+        - updated
+        - archived
+      properties:
+        status:
+          type: string
+          enum:
+            - SUCCESS
+            - SKIPPED
+            - FAILED
+        fetched:
+          type: integer
+        created:
+          type: integer
+        updated:
+          type: integer
+        archived:
+          type: integer
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+        message:
           type: string
 
     ErrorResponse:

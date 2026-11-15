@@ -35,6 +35,19 @@ blastbeast:
     max-upload-bytes: 10485760
     thumb-width: 480
     hero-width: 1600
+  ticketmaster:
+    enabled: false
+    api-key:
+    base-url: https://app.ticketmaster.com/discovery/v2
+    country-code: ES
+    locale: es
+    sync-cron: "0 0 */6 * * *"
+    sync-days: 180
+    window-days: 7
+    page-size: 200
+    max-pages-per-window: 5
+    max-attempts: 3
+    request-interval: 0ms
 
 logging:
   level:

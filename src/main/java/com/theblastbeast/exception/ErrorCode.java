@@ -39,6 +39,9 @@ public enum ErrorCode {
     REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "AUTH-005", "La sesión ya no es válida"),
     USER_DISABLED(HttpStatus.FORBIDDEN, "AUTH-006", "La cuenta está desactivada"),
 
+    // Agenda
+    CONCERT_NOT_FOUND(HttpStatus.NOT_FOUND, "CON-001", "Concierto no encontrado"),
+
     // Medios
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "MED-001", "Formato de archivo no admitido"),
     MEDIA_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "MED-002", "El archivo supera el tamaño máximo"),
