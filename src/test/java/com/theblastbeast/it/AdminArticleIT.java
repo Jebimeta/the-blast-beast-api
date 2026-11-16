@@ -12,6 +12,8 @@ import com.theblastbeast.domain.vo.AdminArticleDetail;
 import com.theblastbeast.domain.vo.AdminArticlePage;
 import com.theblastbeast.domain.vo.ArticleRevisionResponse;
 import com.theblastbeast.domain.vo.MarkdownPreviewResponse;
+import com.theblastbeast.domain.vo.SocialSummaryResponse;
+import com.theblastbeast.domain.vo.SocialSummarySource;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -225,6 +227,41 @@ class AdminArticleIT extends AbstractIntegrationTest {
         assertThat(response.getBody().getBodyHtml())
                 .doesNotContain("<script>")
                 .contains("<h2>Hola</h2>");
+    }
+
+    @Test
+    @DisplayName("genera un resumen social de plantilla sin proveedor de IA")
+    void resumenSocial() {
+        String token = loginAsAdmin();
+        AdminArticleDetail created = createArticle("Metallica anuncia gira");
+
+        ResponseEntity<SocialSummaryResponse> response = rest.exchange(
+                "/api/v1/admin/articles/" + created.getId() + "/social-summary",
+                HttpMethod.POST,
+                new HttpEntity<>(jsonHeaders(token)),
+                SocialSummaryResponse.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getSource()).isEqualTo(SocialSummarySource.TEMPLATE);
+        assertThat(response.getBody().getVariants().getX())
+                .contains("Metallica anuncia gira")
+                .contains("/articulos/" + created.getSlug());
+        assertThat(response.getBody().getVariants().getInstagram())
+                .contains("#Gira")
+                .contains("#Metallica");
+    }
+
+    @Test
+    @DisplayName("el resumen social exige autenticación")
+    void resumenSocialRequiereAutenticacion() {
+        ResponseEntity<ProblemDetail> response = rest.exchange(
+                "/api/v1/admin/articles/1/social-summary",
+                HttpMethod.POST,
+                new HttpEntity<>(Map.of()),
+                ProblemDetail.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test

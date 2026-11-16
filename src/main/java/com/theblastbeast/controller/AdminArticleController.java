@@ -8,7 +8,9 @@ import com.theblastbeast.domain.vo.ArticleRevisionResponse;
 import com.theblastbeast.domain.vo.ArticleWriteRequest;
 import com.theblastbeast.domain.vo.MarkdownPreviewRequest;
 import com.theblastbeast.domain.vo.MarkdownPreviewResponse;
+import com.theblastbeast.domain.vo.SocialSummaryResponse;
 import com.theblastbeast.service.AdminArticleService;
+import com.theblastbeast.service.social.SocialSummaryService;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Component;
 public class AdminArticleController implements AdminArticlesApiDelegate {
 
     private final AdminArticleService adminArticleService;
+    private final SocialSummaryService socialSummaryService;
 
     @Override
     public ResponseEntity<AdminArticlePage> listAdminArticles(Integer page, Integer size,
@@ -80,5 +83,10 @@ public class AdminArticleController implements AdminArticlesApiDelegate {
     @Override
     public ResponseEntity<MarkdownPreviewResponse> previewMarkdown(MarkdownPreviewRequest request) {
         return ResponseEntity.ok(adminArticleService.preview(request.getBodyMd()));
+    }
+
+    @Override
+    public ResponseEntity<SocialSummaryResponse> generateArticleSocialSummary(Long id) {
+        return ResponseEntity.ok(socialSummaryService.generate(id));
     }
 }

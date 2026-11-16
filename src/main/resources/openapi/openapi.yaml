@@ -712,6 +712,32 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/admin/articles/{id}/social-summary:
+    post:
+      tags:
+        - admin-articles
+      operationId: generateArticleSocialSummary
+      summary: Genera textos de difusión para redes sociales
+      description: >
+        Devuelve variantes editables para X, Facebook, Instagram y WhatsApp.
+        Usa el proveedor de IA configurado y cae a una plantilla determinista
+        si no está disponible. No publica nada automáticamente.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      responses:
+        '200':
+          description: Variantes generadas para publicación manual
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SocialSummaryResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/v1/admin/articles/{id}/revisions:
     get:
       tags:
@@ -2471,6 +2497,45 @@ components:
         canonicalUrl:
           type: string
           maxLength: 500
+
+    SocialSummaryVariants:
+      type: object
+      required:
+        - x
+        - facebook
+        - instagram
+        - whatsapp
+      properties:
+        x:
+          type: string
+          description: Mensaje para X, con enlace y máximo 280 caracteres
+        facebook:
+          type: string
+          description: Texto para Facebook con enlace
+        instagram:
+          type: string
+          description: Pie de foto para Instagram con enlace y hashtags
+        whatsapp:
+          type: string
+          description: Mensaje breve para WhatsApp con enlace
+
+    SocialSummarySource:
+      type: string
+      description: Origen de los textos
+      enum:
+        - ai
+        - template
+
+    SocialSummaryResponse:
+      type: object
+      required:
+        - source
+        - variants
+      properties:
+        source:
+          $ref: '#/components/schemas/SocialSummarySource'
+        variants:
+          $ref: '#/components/schemas/SocialSummaryVariants'
 
     ArticleRevisionResponse:
       type: object

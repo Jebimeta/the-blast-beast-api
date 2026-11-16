@@ -69,7 +69,8 @@ Autenticación JWT stateless con refresco en cookie `HttpOnly`:
 
 El panel usa `/api/v1/admin/**` (artículos, revisiones, taxonomía y medios) y
 `/api/v1/admin/markdown/preview`. Todo exige `Authorization: Bearer` y rol `ADMIN` o
-`EDITOR`.
+`EDITOR`. `POST /api/v1/admin/articles/{id}/social-summary` genera textos editables para
+redes sociales; nunca publica, solo devuelve las variantes al panel.
 
 - El access token dura 15 minutos y vive solo en memoria del navegador.
 - El refresh token es opaco, se guarda hasheado y rota en cada uso. La reutilización de un
@@ -81,6 +82,22 @@ El panel usa `/api/v1/admin/**` (artículos, revisiones, taxonomía y medios) y
 - Cada actualización guarda una revisión restaurable.
 
 Detalle completo en [M2 — Redacción](./docs/03-redaccion.md).
+
+### Difusión en redes sociales
+
+El editor puede generar bajo demanda cuatro variantes editables (X, Facebook, Instagram y
+WhatsApp) con `POST /api/v1/admin/articles/{id}/social-summary`. La API no publica en
+ninguna red: devuelve los textos y el panel ofrece copiarlos o compartirlos manualmente.
+
+- Con `AI_API_KEY`, usa un proveedor compatible con OpenAI (`AI_BASE_URL`, `AI_MODEL`,
+  `AI_TIMEOUT`). Solo se envían titular, entradilla, cuerpo, categoría, bandas, etiquetas y
+  URL del artículo, y solo cuando la persona editora pulsa «Generar textos».
+- Sin clave o si el proveedor falla, devuelve una plantilla determinista con
+  `source: template`. Si la respuesta de IA llega incompleta o no respeta los límites, se
+  descarta entera y se usa la plantilla.
+- Límites: X 280, Facebook 600, Instagram 800 y WhatsApp 400 caracteres. Los hashtags de
+  Instagram salen de etiquetas y bandas (máximo 4).
+- Los resultados de IA se cachean en memoria por artículo y versión; no se persisten.
 
 ## Radar de lanzamientos
 
@@ -177,18 +194,18 @@ Flyway aplica las migraciones `V1`–`V3` en el primer arranque: 16 tablas de do
 ./mvnw verify
 ```
 
-**Tests unitarios** (Surefire, sin base de datos): 57 tests con JUnit 5, AssertJ y Mockito
+**Tests unitarios** (Surefire, sin base de datos): 65 tests con JUnit 5, AssertJ y Mockito
 sobre servicios, mappers y controladores.
 
-**Tests de integración** (Failsafe, PostgreSQL real): 55 tests en `src/test/java/com/theblastbeast/it`
+**Tests de integración** (Failsafe, PostgreSQL real): 57 tests en `src/test/java/com/theblastbeast/it`
 que arrancan un contenedor `postgres:17-alpine` con Testcontainers, aplican Flyway y prueban
 la API completa vía HTTP: lectura pública, autenticación y rotación de refrescos, CRUD
-editorial con revisiones, taxonomía, medios con variantes WebP, radar de lanzamientos y
-sitemap/robots/feeds.
+editorial con revisiones, taxonomía, medios con variantes WebP, radar de lanzamientos,
+resumen social y sitemap/robots/feeds.
 
 **Cobertura** (JaCoCo): el build falla si la cobertura de líneas de
 `com.theblastbeast.service` baja del 70 %. El informe se genera en `target/site/jacoco/`.
-Cobertura actual: **92,5 % de líneas** y 67,9 % de ramas.
+Cobertura actual: **92,2 % de líneas** y 65,6 % de ramas.
 
 > Los tests de integración necesitan Docker en marcha. En CI, `ubuntu-latest` ya lo incluye.
 > Un único contenedor `postgres:17-alpine` se reutiliza durante toda la ejecución; entre
@@ -222,6 +239,10 @@ nativa para generar las variantes WebP. En Alpine caerían a PNG. Los medios se 
 | `STORAGE_LOCAL_ROOT` | no | Directorio de medios (`./data/media` por defecto) |
 | `STORAGE_PUBLIC_BASE_URL` | sí | URL pública de medios (`https://dominio/media`) |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | no | Bootstrap del primer ADMIN si no hay usuarios |
+| `AI_BASE_URL` | no | Endpoint compatible con OpenAI (`https://api.openai.com/v1`) |
+| `AI_API_KEY` | no | Clave del proveedor; vacía = plantilla local sin salir del servidor |
+| `AI_MODEL` | no | Modelo de chat (`gpt-4o-mini`) |
+| `AI_TIMEOUT` | no | Timeout de conexión y lectura (`20s`) |
 
 ## Documentación
 
@@ -237,7 +258,7 @@ nativa para generar las variantes WebP. En Alpine caerían a PNG. Los medios se 
 
 - [x] **M0** Fundaciones: contrato, Flyway, seguridad base, ProblemDetail, Docker, CI
 - [x] **M1** Lectura pública: artículos, categorías, bandas, búsqueda full-text, seed
-- [x] **M2** Redacción: JWT con refresh en cookie HttpOnly, CRUD, medios, revisiones
+- [x] **M2** Redacción: JWT con refresh en cookie HttpOnly, CRUD, medios, revisiones y difusión en redes
 - [x] **M3** SEO: sitemap, robots, RSS, JSON-LD y prerender selectivo
 - [x] **M4** Calidad: Testcontainers, JaCoCo, Playwright, axe AA y Lighthouse
 - [ ] **M5** Producción: infraestructura, TLS, backups y monitorización implementados y

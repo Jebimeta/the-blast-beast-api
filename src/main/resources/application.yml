@@ -112,6 +112,13 @@ blastbeast:
     max-pages-per-window: ${TICKETMASTER_MAX_PAGES:5}
     max-attempts: ${TICKETMASTER_MAX_ATTEMPTS:3}
     request-interval: ${TICKETMASTER_REQUEST_INTERVAL:250ms}
+  ai:
+    # Proveedor compatible con la API de OpenAI (OpenAI, Groq, Mistral, Ollama…).
+    # Sin AI_API_KEY, el resumen se genera con la plantilla local.
+    base-url: ${AI_BASE_URL:https://api.openai.com/v1}
+    api-key: ${AI_API_KEY:}
+    model: ${AI_MODEL:gpt-4o-mini}
+    timeout: ${AI_TIMEOUT:20s}
 
 logging:
   level:

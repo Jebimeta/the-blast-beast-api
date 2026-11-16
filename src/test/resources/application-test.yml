@@ -48,6 +48,12 @@ blastbeast:
     max-pages-per-window: 5
     max-attempts: 3
     request-interval: 0ms
+  ai:
+    # Nunca se llama a un proveedor real durante los tests.
+    base-url: https://ai.test
+    api-key:
+    model: test-model
+    timeout: 1s
 
 logging:
   level:
