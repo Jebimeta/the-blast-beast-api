@@ -115,10 +115,10 @@ class FeedServiceTest {
     }
 
     @Test
-    @DisplayName("el feed de categoría usa el nombre de la sección y su URL propia")
-    void generaFeedDeCategoria() {
+    @DisplayName("el feed de Noticias filtra por la etiqueta homónima")
+    void generaFeedDeNoticias() {
         when(categoryRepository.findBySlug("noticias")).thenReturn(Optional.of(category));
-        when(articleRepository.findPageByCategorySlugAndStatus(
+        when(articleRepository.findPageByTagSlugAndStatus(
                 eq("noticias"), eq(ArticleStatus.PUBLISHED), any(Pageable.class)))
                 .thenReturn(List.of(article));
         when(mediaService.toSummaryMap(any())).thenReturn(Map.of());
@@ -128,6 +128,24 @@ class FeedServiceTest {
         assertThat(xml).contains("<title>The Blast Beast — Noticias</title>");
         assertThat(xml).contains("<link>https://theblastbeast.test/categorias/noticias</link>");
         assertThat(xml).contains("<atom:link href=\"https://theblastbeast.test/categorias/noticias/feed.xml\"");
+    }
+
+    @Test
+    @DisplayName("el resto de categorías filtra por su sección")
+    void generaFeedDeCategoria() {
+        category.setSlug("conciertos");
+        category.setName("Conciertos");
+        when(categoryRepository.findBySlug("conciertos")).thenReturn(Optional.of(category));
+        when(articleRepository.findPageByCategorySlugAndStatus(
+                eq("conciertos"), eq(ArticleStatus.PUBLISHED), any(Pageable.class)))
+                .thenReturn(List.of(article));
+        when(mediaService.toSummaryMap(any())).thenReturn(Map.of());
+
+        String xml = feedService.categoryFeed("conciertos");
+
+        assertThat(xml).contains("<title>The Blast Beast — Conciertos</title>");
+        assertThat(xml).contains("<link>https://theblastbeast.test/categorias/conciertos</link>");
+        assertThat(xml).contains("<atom:link href=\"https://theblastbeast.test/categorias/conciertos/feed.xml\"");
     }
 
     @Test

@@ -36,6 +36,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class FeedService {
 
     private static final int FEED_SIZE = 30;
+    /** La sección «Noticias» se nutre de la etiqueta homónima, no de la categoría. */
+    private static final String NEWS_SLUG = "noticias";
     private static final String DEFAULT_DESCRIPTION =
             "Noticias de heavy metal, lanzamientos, conciertos y entrevistas. Información de la escena sin relleno.";
 
@@ -66,8 +68,12 @@ public class FeedService {
         Category category = categoryRepository.findBySlug(slug)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
         String base = baseUrl();
-        List<Article> articles = articleRepository.findPageByCategorySlugAndStatus(
-                slug, ArticleStatus.PUBLISHED, PageRequest.of(0, FEED_SIZE));
+        PageRequest page = PageRequest.of(0, FEED_SIZE);
+        List<Article> articles = NEWS_SLUG.equals(slug)
+                ? articleRepository.findPageByTagSlugAndStatus(
+                        NEWS_SLUG, ArticleStatus.PUBLISHED, page)
+                : articleRepository.findPageByCategorySlugAndStatus(
+                        slug, ArticleStatus.PUBLISHED, page);
         String description = category.getDescription() == null || category.getDescription().isBlank()
                 ? DEFAULT_DESCRIPTION
                 : category.getDescription();

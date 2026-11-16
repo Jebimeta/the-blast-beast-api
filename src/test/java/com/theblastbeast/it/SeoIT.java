@@ -7,6 +7,7 @@ import com.theblastbeast.domain.entity.ArticleStatus;
 import com.theblastbeast.domain.entity.Category;
 import com.theblastbeast.domain.entity.MediaAsset;
 import com.theblastbeast.domain.entity.MediaKind;
+import com.theblastbeast.domain.entity.Tag;
 import com.theblastbeast.domain.entity.User;
 import java.time.OffsetDateTime;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,9 +30,11 @@ class SeoIT extends AbstractIntegrationTest {
     void seedContent() {
         User author = seedAdmin();
         Category noticias = seedCategory("noticias", "Noticias");
+        Tag noticiasTag = seedTag("noticias", "Noticias");
         seedBand("metallica", "Metallica");
         Article article = seedArticle("metallica-anuncia-gira", "Metallica anuncia gira",
                 noticias, author, ArticleStatus.PUBLISHED, OffsetDateTime.now().minusHours(1));
+        article.getTags().add(noticiasTag);
 
         MediaAsset original = new MediaAsset();
         original.setKind(MediaKind.ORIGINAL);

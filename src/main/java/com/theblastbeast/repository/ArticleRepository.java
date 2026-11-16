@@ -68,4 +68,17 @@ public interface ArticleRepository extends JpaRepository<Article, Long>,
             @Param("slug") String slug,
             @Param("status") ArticleStatus status,
             Pageable pageable);
+
+    @Query("""
+            select a
+            from Article a
+            join a.tags t
+            left join fetch a.coverMedia
+            where t.slug = :tag and a.status = :status
+            order by a.publishedAt desc
+            """)
+    List<Article> findPageByTagSlugAndStatus(
+            @Param("tag") String tag,
+            @Param("status") ArticleStatus status,
+            Pageable pageable);
 }

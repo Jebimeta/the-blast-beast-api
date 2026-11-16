@@ -111,12 +111,14 @@ Recursos XML públicos en la raíz del dominio, servidos por la API y publicados
 | GET | `/sitemap.xml` | URLs indexables con `lastmod` e imagen `hero` |
 | GET | `/robots.txt` | Rastrea el portal, bloquea `/admin` y `/api/` |
 | GET | `/feed.xml` | RSS 2.0 global, últimos 30 artículos |
-| GET | `/categorias/{slug}/feed.xml` | RSS 2.0 de una categoría |
+| GET | `/categorias/{slug}/feed.xml` | RSS 2.0 de una categoría; `noticias` usa su etiqueta |
 
 - El sitemap incluye portada, archivo, categorías, bandas y artículos `PUBLISHED`; las
   URLs son absolutas a partir de `SITE_BASE_URL`.
 - Los feeds llevan el HTML completo y saneado en `content:encoded`, autor, categoría y la
   variante `hero` en `media:content`.
+- La sección «Noticias» se nutre de la etiqueta `noticias`; su feed aplica el mismo filtro
+  para no divergir del listado público.
 - Sitemap y feeds responden con `ETag` y `304 Not Modified`; `robots.txt` se genera con el
   origen público real.
 - Caddy enruta estas rutas a la API antes del catch-all del frontend.
@@ -175,7 +177,7 @@ Flyway aplica las migraciones `V1`–`V3` en el primer arranque: 16 tablas de do
 ./mvnw verify
 ```
 
-**Tests unitarios** (Surefire, sin base de datos): 56 tests con JUnit 5, AssertJ y Mockito
+**Tests unitarios** (Surefire, sin base de datos): 57 tests con JUnit 5, AssertJ y Mockito
 sobre servicios, mappers y controladores.
 
 **Tests de integración** (Failsafe, PostgreSQL real): 55 tests en `src/test/java/com/theblastbeast/it`
@@ -186,7 +188,7 @@ sitemap/robots/feeds.
 
 **Cobertura** (JaCoCo): el build falla si la cobertura de líneas de
 `com.theblastbeast.service` baja del 70 %. El informe se genera en `target/site/jacoco/`.
-Cobertura actual: **92,5 % de líneas** y 67,8 % de ramas.
+Cobertura actual: **92,5 % de líneas** y 67,9 % de ramas.
 
 > Los tests de integración necesitan Docker en marcha. En CI, `ubuntu-latest` ya lo incluye.
 > Un único contenedor `postgres:17-alpine` se reutiliza durante toda la ejecución; entre
