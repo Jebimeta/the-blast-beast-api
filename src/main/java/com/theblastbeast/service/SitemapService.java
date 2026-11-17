@@ -76,6 +76,9 @@ public class SitemapService {
 
         appendUrl(xml, base + "/", latest, "hourly", "1.0", null);
         appendUrl(xml, base + "/articulos", latest, "daily", "0.8", null);
+        appendUrl(xml, base + "/sobre", null, "monthly", "0.4", null);
+        appendUrl(xml, base + "/contacto", null, "monthly", "0.3", null);
+        appendUrl(xml, base + "/privacidad", null, "monthly", "0.2", null);
 
         for (Category category : categories) {
             appendUrl(xml, base + "/categorias/" + category.getSlug(),

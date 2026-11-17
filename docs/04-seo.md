@@ -44,6 +44,9 @@ contamina el contrato OpenAPI JSON.
 |---|---|---|---|
 | `/` | `hourly` | `1.0` | Actualización del artículo más reciente |
 | `/articulos` | `daily` | `0.8` | Actualización del artículo más reciente |
+| `/sobre` | `monthly` | `0.4` | — |
+| `/contacto` | `monthly` | `0.3` | — |
+| `/privacidad` | `monthly` | `0.2` | — |
 | `/categorias/{slug}` | `daily` | `0.6` | Último artículo publicado de esa categoría |
 | `/bandas/{slug}` | `weekly` | `0.5` | — |
 | `/articulos/{slug}` | `weekly` | `0.7` | `updatedAt` del artículo |

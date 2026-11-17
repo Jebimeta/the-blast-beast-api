@@ -89,7 +89,8 @@ tiempo de ejecución desde `.env.prod`; la web también, para el SSR y los canon
 1. **Validar** (en cada push y en manual): `docker compose config`, `caddy validate` y
    ShellCheck sobre `ops/*.sh`.
 2. **Desplegar** (solo `workflow_dispatch`): entra por SSH al VPS, actualiza el repo de
-   deploy, hace login opcional en GHCR y ejecuta `./ops/deploy.sh <tag>`.
+   deploy, hace login en GHCR solo si hay credenciales y ejecuta
+   `./ops/deploy.sh <api-tag> <web-tag>`.
 
 Secretos necesarios en GitHub:
 
@@ -99,7 +100,7 @@ Secretos necesarios en GitHub:
 | `VPS_USER` | Usuario de despliegue (no root) |
 | `VPS_SSH_KEY` | Clave privada SSH |
 | `VPS_SSH_PORT` | Puerto SSH (opcional, 22 por defecto) |
-| `GHCR_USER` | Usuario de GitHub para GHCR |
+| `GHCR_USER` | Usuario de GitHub para GHCR (solo si los paquetes son privados) |
 | `GHCR_TOKEN` | PAT con `read:packages` (solo si los paquetes son privados) |
 
 Si los paquetes de GHCR son públicos, el login no es necesario. Si son privados, el
@@ -110,15 +111,17 @@ servidor necesita `docker login ghcr.io` o las credenciales del workflow.
 Secuencia:
 
 1. Backup previo si la base de datos está en marcha. En el primer despliegue se omite.
-2. `docker compose pull` con el tag solicitado.
+2. `docker compose pull api web` con los tags solicitados.
 3. `docker compose up -d --remove-orphans`.
 4. Espera a que API, web y Caddy estén `healthy`.
 5. Smoke test: `/api/v1/ping`, `/` y `/sitemap.xml`.
-6. Guarda el tag en `.deployed-tag` y limpia imágenes de más de 7 días.
+6. Guarda el par `API_IMAGE_TAG`/`WEB_IMAGE_TAG` en `.deployed-images` y limpia imágenes
+   de más de 7 días.
 
-Si algo falla, vuelve al tag anterior y repite healthchecks y smoke. **Las migraciones
-Flyway son forward-only:** un rollback de imagen no revierte el esquema. Por eso el
-backup previo es obligatorio en cada actualización.
+Si algo falla, vuelve al par anterior y repite healthchecks y smoke. `./ops/deploy.sh
+--rollback` vuelve manualmente al par guardado. **Las migraciones Flyway son
+forward-only:** un rollback de imagen no revierte el esquema. Por eso el backup previo es
+obligatorio en cada actualización.
 
 Primer despliegue:
 
@@ -130,7 +133,7 @@ cd /opt/the-blast-beast
 ./ops/generate-env.sh
 # revisar BACKUP_AGE_RECIPIENT y ALERT_WEBHOOK_URL
 docker login ghcr.io          # solo si los paquetes son privados
-./ops/deploy.sh latest
+./ops/deploy.sh latest latest
 ```
 
 ## Secretos y configuración
@@ -150,7 +153,7 @@ secretos reales.
 | `AUTH_COOKIE_SECURE` | sí | `true` en producción |
 | `STORAGE_PUBLIC_BASE_URL` | sí | `https://<dominio>/media` |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | no | Bootstrap del primer ADMIN si no hay usuarios |
-| `IMAGE_TAG` | no | `latest` o SHA |
+| `API_IMAGE_TAG`, `WEB_IMAGE_TAG` | no | `latest` o el SHA de cada repo; en producción, SHA |
 | `BACKUP_DIR`, `BACKUP_RETENTION_DAYS` | no | 14 días por defecto |
 | `BACKUP_AGE_RECIPIENT` | recomendado | Clave pública age para cifrar backups |
 | `ALERT_WEBHOOK_URL` | recomendado | Slack o Discord (`/slack` al final) |
@@ -160,8 +163,8 @@ Rotación:
 - **JWT_SECRET:** cambia el valor y reinicia la API; todas las sesiones quedan invalidadas.
 - **Contraseña de base de datos:** cámbiala en PostgreSQL y en `.env.prod`, y recrea los
   contenedores. No basta con reiniciar la API.
-- **ADMIN_PASSWORD:** solo se usa en el bootstrap inicial. Cámbiala desde el panel o con
-  el flujo de administración después del primer login.
+- **ADMIN_PASSWORD:** solo se usa en el bootstrap inicial. Guárdala en un gestor de
+  contraseñas; no hay flujo de cambio desde el panel todavía.
 - **Token de GHCR:** usa un PAT con `read:packages` y caducidad; no reutilices el token
   de publicación.
 
@@ -392,9 +395,9 @@ docker compose --env-file .env.prod -f docker-compose.prod.yml logs -f --tail=20
 # Restauración real (destructiva)
 ./ops/restore-backup.sh /var/backups/the-blast-beast/<archivo>.tar.gz --apply
 
-# Desplegar un tag concreto o volver al anterior
-./ops/deploy.sh <sha>
-./ops/deploy.sh "$(cat .deployed-tag)"
+# Desplegar un par concreto o volver al último par correcto
+./ops/deploy.sh <sha-api> <sha-web>
+./ops/deploy.sh --rollback
 
 # Healthcheck y timers
 ./ops/healthcheck.sh

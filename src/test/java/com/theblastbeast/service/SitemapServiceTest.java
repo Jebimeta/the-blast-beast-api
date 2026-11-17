@@ -85,7 +85,7 @@ class SitemapServiceTest {
     }
 
     @Test
-    @DisplayName("incluye portada, archivo, taxonomía y artículos publicados con URLs absolutas")
+    @DisplayName("incluye portada, archivo, páginas estáticas, taxonomía y artículos publicados con URLs absolutas")
     void incluyeUrlsPublicas() {
         when(articleRepository.findAllByStatusWithCover(ArticleStatus.PUBLISHED))
                 .thenReturn(List.of(article));
@@ -98,9 +98,13 @@ class SitemapServiceTest {
         assertThat(xml).startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/articulos</loc>");
+        assertThat(xml).contains("<loc>https://theblastbeast.test/sobre</loc>");
+        assertThat(xml).contains("<loc>https://theblastbeast.test/contacto</loc>");
+        assertThat(xml).contains("<loc>https://theblastbeast.test/privacidad</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/categorias/noticias</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/bandas/metallica</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/articulos/metallica-anuncia-gira</loc>");
+        assertThat(xml).doesNotContain("/buscar").doesNotContain("/admin");
         assertThat(xml).contains("<lastmod>2026-11-08T11:00:00Z</lastmod>");
         verify(articleRepository).findAllByStatusWithCover(ArticleStatus.PUBLISHED);
     }
