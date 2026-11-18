@@ -38,18 +38,21 @@ regression` y monitorización de producción. Eso pertenece a M5.
 - **Utilidades de siembra.** `seedUser`, `seedCategory`, `seedBand`, `seedTag`,
   `seedArticle`, `loginAsAdmin` y `refreshCookie` evitan repetir *setup* en cada test.
 
-Distribución de los 41 tests de integración:
+Distribución de los 63 tests de integración:
 
 | Clase | Tests | Qué cubre |
 |---|---|---|
-| `PublicApiIT` | 10 | Listado, destacados, detalle, categorías, bandas, búsqueda, 404/410 |
-| `AdminArticleIT` | 9 | CRUD, estados, revisiones, publicación y borrado |
-| `AuthIT` | 7 | Login, rotación de refresco, reuso, sesión y logout |
+| `AuthIT` | 13 | Login, rotación de refresco, reuso, logout, cambio de contraseña y bloqueo por intentos |
+| `PublicApiIT` | 11 | Listado, destacados, detalle, categorías, bandas, búsqueda, 404/410 |
+| `AdminArticleIT` | 11 | CRUD, estados, revisiones, publicación y borrado |
+| `ConcertIT` | 7 | Agenda pública, detalle, filtros y sincronización editorial |
 | `AdminTaxonomyIT` | 6 | Categorías, bandas y etiquetas |
 | `AdminMediaIT` | 5 | Subida multipart, variantes WebP y protección de imágenes en uso |
+| `ReleaseIT` | 5 | Radar de lanzamientos: CRUD y listado público |
 | `SeoIT` | 4 | Sitemap, robots, feeds y cabeceras de caché |
+| `ConcertImportIT` | 1 | Importación de eventos de Ticketmaster |
 
-Los unitarios (29, Surefire) siguen cubriendo la lógica pura de servicios, mappers y
+Los unitarios (78, Surefire) siguen cubriendo la lógica pura de servicios, mappers y
 controladores con Mockito. `mvn clean verify` encadena ambas fases: Surefire en `test`,
 Failsafe en `verify`.
 
@@ -70,8 +73,8 @@ donde una regla global se diluiría entre mappers y VOs generados.
 
 | Métrica (servicios) | Valor |
 |---|---|
-| Líneas | **770 / 823 = 93,6 %** |
-| Ramas | 150 / 229 = 65,5 % |
+| Líneas | **1548 / 1677 = 92,3 %** |
+| Ramas | 395 / 598 = 66,1 % |
 
 El informe HTML queda en `target/site/jacoco/index.html` y CI publica el `.exec`, el XML y
 los reportes de Surefire/Failsafe como artefactos.
@@ -84,9 +87,9 @@ permite apuntar a otro entorno.
 
 | Spec | Tests | Contenido |
 |---|---|---|
-| `e2e/public.spec.ts` | 7 | Portada, detalle, archivo, búsqueda, 404 real, estáticas, sitemap/robots/feed |
-| `e2e/admin.spec.ts` | 3 | Login obligatorio, ciclo crear→publicar→verificar→borrar, filtros |
-| `e2e/a11y.spec.ts` | 2 | axe sobre páginas públicas y sobre login/panel |
+| `e2e/public.spec.ts` | 12 | Portada, detalle, archivo, búsqueda, 404 real, estáticas, sitemap/robots/feed |
+| `e2e/admin.spec.ts` | 4 | Login obligatorio, ciclo crear→publicar→verificar→borrar, CRUD del radar, filtros |
+| `e2e/a11y.spec.ts` | 11 | axe sobre páginas públicas, login y panel autenticado |
 
 Detalles que hacen la suite fiable:
 

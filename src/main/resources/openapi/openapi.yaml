@@ -442,6 +442,8 @@ paths:
                 $ref: '#/components/schemas/AuthResponse'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /api/v1/auth/refresh:
     post:
@@ -489,6 +491,28 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthUser'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/v1/auth/password:
+    post:
+      tags:
+        - auth
+      operationId: changePassword
+      summary: Cambia la contraseña del usuario autenticado
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '204':
+          description: Contraseña actualizada; se cierran las demás sesiones
+        '400':
+          $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -1429,6 +1453,17 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ErrorResponse'
+    TooManyRequests:
+      description: Demasiados intentos; espera antes de volver a probar
+      headers:
+        Retry-After:
+          description: Segundos de espera antes de reintentar
+          schema:
+            type: integer
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
     NotFound:
       description: Recurso no encontrado
       content:
@@ -2258,6 +2293,21 @@ components:
         password:
           type: string
           minLength: 8
+          maxLength: 200
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - currentPassword
+        - newPassword
+      properties:
+        currentPassword:
+          type: string
+          minLength: 8
+          maxLength: 200
+        newPassword:
+          type: string
+          minLength: 12
           maxLength: 200
 
     AuthUser:

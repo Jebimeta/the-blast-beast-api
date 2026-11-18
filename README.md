@@ -66,6 +66,7 @@ Autenticación JWT stateless con refresco en cookie `HttpOnly`:
 | POST | `/api/v1/auth/refresh` | Rota el refresco y emite un access token nuevo |
 | POST | `/api/v1/auth/logout` | Revoca el refresco y borra la cookie |
 | GET | `/api/v1/auth/me` | Usuario autenticado |
+| POST | `/api/v1/auth/password` | Cambia la contraseña del usuario autenticado y revoca sus sesiones |
 
 El panel usa `/api/v1/admin/**` (artículos, revisiones, taxonomía y medios) y
 `/api/v1/admin/markdown/preview`. Todo exige `Authorization: Bearer` y rol `ADMIN` o
@@ -75,6 +76,10 @@ redes sociales; nunca publica, solo devuelve las variantes al panel.
 - El access token dura 15 minutos y vive solo en memoria del navegador.
 - El refresh token es opaco, se guarda hasheado y rota en cada uso. La reutilización de un
   token revocado invalida toda su familia.
+- El login limita los fallos por IP y por IP + email (`AUTH_LOGIN_*`). Al superar el
+  límite responde `429` con `Retry-After`.
+- La contraseña se cambia en `/admin/cuenta`. Si se pierde el acceso, el script
+  `ops/reset-admin-password.sh` del repo de despliegue la restablece sin correo.
 - Las imágenes se guardan en disco tras `StorageService` y se generan variantes WebP
   `thumb` (480 px) y `hero` (1600 px). La API pública expone `cover.variants` y el
   frontend elige la adecuada.
@@ -194,18 +199,18 @@ Flyway aplica las migraciones `V1`–`V3` en el primer arranque: 16 tablas de do
 ./mvnw verify
 ```
 
-**Tests unitarios** (Surefire, sin base de datos): 65 tests con JUnit 5, AssertJ y Mockito
+**Tests unitarios** (Surefire, sin base de datos): 78 tests con JUnit 5, AssertJ y Mockito
 sobre servicios, mappers y controladores.
 
-**Tests de integración** (Failsafe, PostgreSQL real): 57 tests en `src/test/java/com/theblastbeast/it`
+**Tests de integración** (Failsafe, PostgreSQL real): 63 tests en `src/test/java/com/theblastbeast/it`
 que arrancan un contenedor `postgres:17-alpine` con Testcontainers, aplican Flyway y prueban
-la API completa vía HTTP: lectura pública, autenticación y rotación de refrescos, CRUD
-editorial con revisiones, taxonomía, medios con variantes WebP, radar de lanzamientos,
-resumen social y sitemap/robots/feeds.
+la API completa vía HTTP: lectura pública, autenticación y rotación de refrescos, cambio de
+contraseña y bloqueo por intentos, CRUD editorial con revisiones, taxonomía, medios con
+variantes WebP, radar de lanzamientos, agenda, resumen social y sitemap/robots/feeds.
 
 **Cobertura** (JaCoCo): el build falla si la cobertura de líneas de
 `com.theblastbeast.service` baja del 70 %. El informe se genera en `target/site/jacoco/`.
-Cobertura actual: **92,2 % de líneas** y 65,6 % de ramas.
+Cobertura actual: **92,3 % de líneas** y 66,1 % de ramas.
 
 > Los tests de integración necesitan Docker en marcha. En CI, `ubuntu-latest` ya lo incluye.
 > Un único contenedor `postgres:17-alpine` se reutiliza durante toda la ejecución; entre

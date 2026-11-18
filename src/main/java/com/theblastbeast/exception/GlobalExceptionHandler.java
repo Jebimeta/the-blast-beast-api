@@ -1,6 +1,7 @@
 package com.theblastbeast.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -27,6 +29,17 @@ public class GlobalExceptionHandler {
         ErrorCode errorCode = exception.getErrorCode();
         log.warn("INIT - GlobalExceptionHandler -> handleBusinessException() - {} {} -> {}",
                 request.getMethod(), request.getRequestURI(), errorCode.getCode());
+        return buildProblem(errorCode, exception.getMessage(), request);
+    }
+
+    @ExceptionHandler(RateLimitException.class)
+    public ProblemDetail handleRateLimitException(RateLimitException exception,
+            HttpServletRequest request, HttpServletResponse response) {
+        ErrorCode errorCode = exception.getErrorCode();
+        response.setHeader(HttpHeaders.RETRY_AFTER, Long.toString(exception.getRetryAfterSeconds()));
+        log.warn("INIT - GlobalExceptionHandler -> handleRateLimitException() - {} {} -> {} (retryAfter={}s)",
+                request.getMethod(), request.getRequestURI(), errorCode.getCode(),
+                exception.getRetryAfterSeconds());
         return buildProblem(errorCode, exception.getMessage(), request);
     }
 

@@ -22,6 +22,7 @@ import com.theblastbeast.repository.ReleaseRepository;
 import com.theblastbeast.repository.TagRepository;
 import com.theblastbeast.repository.UserRepository;
 import com.theblastbeast.repository.VenueRepository;
+import com.theblastbeast.security.LoginRateLimiter;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -107,8 +108,14 @@ public abstract class AbstractIntegrationTest {
     @Autowired
     protected ReleaseRepository releaseRepository;
 
+    @Autowired
+    protected LoginRateLimiter loginRateLimiter;
+
     @BeforeEach
     void prepareTest() {
+        // Todos los tests comparten la IP 127.0.0.1: sin limpiar, los fallos de
+        // login de un test podrían bloquear los siguientes.
+        loginRateLimiter.clear();
         // Los tests negocian errores ProblemDetail sin depender del Accept del cliente.
         rest.getRestTemplate().setInterceptors(List.of((request, body, execution) -> {
             request.getHeaders().setAccept(List.of(MediaType.ALL));

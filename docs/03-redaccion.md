@@ -41,6 +41,7 @@ media_assets ──< media_assets (parent_id: original -> thumb / hero)
 | POST | `/api/v1/auth/refresh` | Rota el refresco y devuelve un access token nuevo |
 | POST | `/api/v1/auth/logout` | Revoca el refresco y borra la cookie |
 | GET | `/api/v1/auth/me` | Usuario autenticado |
+| POST | `/api/v1/auth/password` | Cambia la contraseña y revoca las sesiones abiertas |
 
 Diseño:
 
@@ -52,6 +53,11 @@ Diseño:
   se revoca **toda la familia** (`family_id`) y se responde `401 REFRESH_TOKEN_INVALID`.
 - El backend es stateless: `SessionCreationPolicy.STATELESS`, sin formulario ni Basic.
 - Contraseñas con BCrypt.
+- El login limita los fallos por IP y por IP + email (`AUTH_LOGIN_*`). Al superar el
+  límite responde `429` con `Retry-After`.
+- Cambiar la contraseña exige la actual, aplica una longitud mínima de 12 caracteres y
+  revoca todos los refrescos del usuario. La sesión en memoria del navegador se limpia y
+  se vuelve al login.
 
 ### Bootstrap del primer usuario
 
@@ -63,6 +69,17 @@ redaccion@theblastbeast.com / Redaccion2026!
 ```
 
 Son credenciales de desarrollo: cámbialas o usa bootstrap en producción.
+
+### Cambio y restablecimiento de contraseña
+
+- En el panel, `/admin/cuenta` permite cambiar la contraseña con la actual. Al guardar se
+  revocan los refrescos y se cierra la sesión.
+- Si el administrador no puede entrar, el script `ops/reset-admin-password.sh` del repo de
+  despliegue pide la nueva contraseña por consola y arranca la API con el perfil
+  `reset-password`. No envía correo ni abre el puerto HTTP.
+- El perfil `reset-password` se ejecuta como tarea de mantenimiento y termina con código 0
+  si el cambio fue correcto. No se activa sobre la API en marcha: es un proceso aparte que
+  se conecta a la misma base de datos.
 
 ## Endpoints de redacción
 
@@ -139,6 +156,7 @@ Rutas bajo `/admin`, renderizadas en cliente (`RenderMode.Client`):
 | `/admin/articulos/:id` | Editor con vista previa, autoguardado e historial |
 | `/admin/taxonomia` | Pestañas de categorías, bandas y etiquetas |
 | `/admin/medios` | Biblioteca con subida, edición y borrado |
+| `/admin/cuenta` | Cambio de contraseña del usuario autenticado |
 
 Detalles:
 

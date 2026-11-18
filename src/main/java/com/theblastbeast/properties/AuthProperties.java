@@ -1,5 +1,6 @@
 package com.theblastbeast.properties;
 
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -15,4 +16,7 @@ public record AuthProperties(
         @NotNull Duration refreshTokenTtl,
         @NotBlank String cookieName,
         boolean cookieSecure,
-        String cookieDomain) {}
+        String cookieDomain,
+        @NotNull Duration loginWindow,
+        @Min(1) int loginMaxAttempts,
+        @Min(1) int loginMaxAttemptsPerIp) {}

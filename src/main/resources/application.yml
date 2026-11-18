@@ -85,6 +85,10 @@ blastbeast:
     cookie-name: ${AUTH_COOKIE_NAME:bb_refresh}
     cookie-secure: ${AUTH_COOKIE_SECURE:false}
     cookie-domain: ${AUTH_COOKIE_DOMAIN:}
+    # Límite de intentos fallidos de login por IP y por IP + email.
+    login-window: ${AUTH_LOGIN_WINDOW:PT15M}
+    login-max-attempts: ${AUTH_LOGIN_MAX_ATTEMPTS:5}
+    login-max-attempts-per-ip: ${AUTH_LOGIN_MAX_ATTEMPTS_PER_IP:20}
   bootstrap:
     email: ${ADMIN_EMAIL:}
     password: ${ADMIN_PASSWORD:}

@@ -10,6 +10,7 @@ import com.theblastbeast.properties.AuthProperties;
 import com.theblastbeast.repository.RefreshTokenRepository;
 import com.theblastbeast.repository.UserRepository;
 import com.theblastbeast.security.JwtService;
+import com.theblastbeast.security.PasswordPolicy;
 import com.theblastbeast.security.UserPrincipal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -103,6 +104,33 @@ public class AuthenticationService {
             throw new BusinessException(ErrorCode.USER_DISABLED);
         }
         return toAuthUser(user);
+    }
+
+    @Transactional
+    public void changePassword(UserPrincipal principal, String currentPassword, String newPassword) {
+        log.debug("INIT - AuthenticationService -> changePassword() - user={}", principal.id());
+        User user = userRepository.findById(principal.id())
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_REQUIRED));
+        if (!user.isActive()) {
+            throw new BusinessException(ErrorCode.USER_DISABLED);
+        }
+        if (currentPassword == null
+                || !passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.CURRENT_PASSWORD_INVALID);
+        }
+        if (!PasswordPolicy.isAcceptable(newPassword)) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "La nueva contraseña debe tener entre 12 y 200 caracteres");
+        }
+        if (passwordEncoder.matches(newPassword, user.getPasswordHash())) {
+            throw new BusinessException(ErrorCode.PASSWORD_REUSE);
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+        int revoked = refreshTokenRepository.revokeAllByUserId(user.getId());
+        log.info("END - AuthenticationService -> changePassword() - user={}, sesionesRevocadas={}",
+                user.getId(), revoked);
     }
 
     private AuthSession issue(User user) {

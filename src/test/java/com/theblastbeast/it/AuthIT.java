@@ -173,4 +173,136 @@ class AuthIT extends AbstractIntegrationTest {
                 ProblemDetail.class);
         assertThat(refresh.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
+
+    @Test
+    @DisplayName("cambiar la contraseña revoca las sesiones y exige la nueva")
+    void cambiarContrasena() {
+        ResponseEntity<AuthResponse> login = rest.postForEntity(
+                "/api/v1/auth/login",
+                Map.of("email", ADMIN_EMAIL, "password", ADMIN_PASSWORD),
+                AuthResponse.class);
+        String token = login.getBody().getAccessToken();
+        String cookie = refreshCookie(login);
+
+        ResponseEntity<Void> response = rest.exchange(
+                "/api/v1/auth/password",
+                HttpMethod.POST,
+                new HttpEntity<>(Map.of(
+                        "currentPassword", ADMIN_PASSWORD,
+                        "newPassword", "NuevaClave2026!"), jsonHeaders(token)),
+                Void.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.SET_COOKIE))
+                .contains("bb_refresh=")
+                .contains("Max-Age=0");
+
+        // La contraseña anterior deja de valer.
+        ResponseEntity<ProblemDetail> oldPassword = rest.postForEntity(
+                "/api/v1/auth/login",
+                Map.of("email", ADMIN_EMAIL, "password", ADMIN_PASSWORD),
+                ProblemDetail.class);
+        assertThat(oldPassword.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+
+        // La nueva sí.
+        ResponseEntity<AuthResponse> newPassword = rest.postForEntity(
+                "/api/v1/auth/login",
+                Map.of("email", ADMIN_EMAIL, "password", "NuevaClave2026!"),
+                AuthResponse.class);
+        assertThat(newPassword.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        // El refresco emitido antes del cambio queda revocado.
+        ResponseEntity<ProblemDetail> oldRefresh = rest.exchange(
+                "/api/v1/auth/refresh",
+                HttpMethod.POST,
+                new HttpEntity<>(cookieHeaders(cookie)),
+                ProblemDetail.class);
+        assertThat(oldRefresh.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    @DisplayName("cambiar la contraseña exige la contraseña actual")
+    void cambiarContrasenaActualIncorrecta() {
+        String token = loginAsAdmin();
+
+        ResponseEntity<ProblemDetail> response = rest.exchange(
+                "/api/v1/auth/password",
+                HttpMethod.POST,
+                new HttpEntity<>(Map.of(
+                        "currentPassword", "no-es-la-actual",
+                        "newPassword", "NuevaClave2026!"), jsonHeaders(token)),
+                ProblemDetail.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().getProperties()).containsEntry("code", "AUTH-007");
+    }
+
+    @Test
+    @DisplayName("cambiar la contraseña rechaza reutilizar la actual")
+    void cambiarContrasenaReutilizada() {
+        String token = loginAsAdmin();
+
+        ResponseEntity<ProblemDetail> response = rest.exchange(
+                "/api/v1/auth/password",
+                HttpMethod.POST,
+                new HttpEntity<>(Map.of(
+                        "currentPassword", ADMIN_PASSWORD,
+                        "newPassword", ADMIN_PASSWORD), jsonHeaders(token)),
+                ProblemDetail.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().getProperties()).containsEntry("code", "AUTH-008");
+    }
+
+    @Test
+    @DisplayName("cambiar la contraseña valida la longitud mínima")
+    void cambiarContrasenaCorta() {
+        String token = loginAsAdmin();
+
+        ResponseEntity<ProblemDetail> response = rest.exchange(
+                "/api/v1/auth/password",
+                HttpMethod.POST,
+                new HttpEntity<>(Map.of(
+                        "currentPassword", ADMIN_PASSWORD,
+                        "newPassword", "corta"), jsonHeaders(token)),
+                ProblemDetail.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().getProperties()).containsEntry("code", "GEN-001");
+    }
+
+    @Test
+    @DisplayName("cambiar la contraseña exige autenticación")
+    void cambiarContrasenaSinToken() {
+        ResponseEntity<ProblemDetail> response = rest.exchange(
+                "/api/v1/auth/password",
+                HttpMethod.POST,
+                new HttpEntity<>(Map.of(
+                        "currentPassword", ADMIN_PASSWORD,
+                        "newPassword", "NuevaClave2026!"), jsonHeaders(null)),
+                ProblemDetail.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    @DisplayName("el login se bloquea tras demasiados intentos fallidos")
+    void loginBloqueadoPorIntentos() {
+        for (int attempt = 0; attempt < 3; attempt++) {
+            ResponseEntity<ProblemDetail> failed = rest.postForEntity(
+                    "/api/v1/auth/login",
+                    Map.of("email", ADMIN_EMAIL, "password", "contraseña-incorrecta"),
+                    ProblemDetail.class);
+            assertThat(failed.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        }
+
+        ResponseEntity<ProblemDetail> blocked = rest.postForEntity(
+                "/api/v1/auth/login",
+                Map.of("email", ADMIN_EMAIL, "password", ADMIN_PASSWORD),
+                ProblemDetail.class);
+
+        assertThat(blocked.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);
+        assertThat(blocked.getHeaders().getFirst(HttpHeaders.RETRY_AFTER)).isNotBlank();
+        assertThat(blocked.getBody().getProperties()).containsEntry("code", "AUTH-009");
+    }
 }

@@ -60,7 +60,8 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
-                        .requestMatchers("/api/v1/admin/**", "/api/v1/auth/me").authenticated()
+                        .requestMatchers("/api/v1/admin/**", "/api/v1/auth/me", "/api/v1/auth/password")
+                        .authenticated()
                         .anyRequest().authenticated())
                 .exceptionHandling(handler -> handler
                         .authenticationEntryPoint(restSecurityHandler)

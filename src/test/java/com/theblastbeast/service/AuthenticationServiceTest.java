@@ -38,7 +38,10 @@ class AuthenticationServiceTest {
             Duration.ofDays(30),
             "bb_refresh",
             false,
-            null);
+            null,
+            Duration.ofMinutes(15),
+            5,
+            20);
 
     @Mock
     private UserRepository userRepository;
@@ -157,6 +160,72 @@ class AuthenticationServiceTest {
         assertThat(session.accessToken()).isEqualTo("nuevo-access");
         assertThat(session.refreshToken()).isNotBlank();
         verify(refreshTokenRepository).save(any(RefreshToken.class));
+    }
+
+    @Test
+    @DisplayName("changePassword rechaza una contraseña actual incorrecta")
+    void changePasswordRechazaActualIncorrecta() {
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("incorrecta", user.getPasswordHash())).thenReturn(false);
+
+        assertThatThrownBy(() -> authenticationService.changePassword(
+                principal(), "incorrecta", "nueva-clave-larga"))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        ex -> assertThat(ex.getErrorCode())
+                                .isEqualTo(ErrorCode.CURRENT_PASSWORD_INVALID));
+
+        verify(userRepository, never()).save(any());
+        verify(refreshTokenRepository, never()).revokeAllByUserId(any());
+    }
+
+    @Test
+    @DisplayName("changePassword exige la política mínima de la contraseña nueva")
+    void changePasswordRechazaContrasenaCorta() {
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("actual", user.getPasswordHash())).thenReturn(true);
+
+        assertThatThrownBy(() -> authenticationService.changePassword(
+                principal(), "actual", "corta"))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        ex -> assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_ERROR));
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("changePassword rechaza reutilizar la contraseña actual")
+    void changePasswordRechazaReuso() {
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("actual", user.getPasswordHash())).thenReturn(true);
+        when(passwordEncoder.matches("misma-clave-larga", user.getPasswordHash())).thenReturn(true);
+
+        assertThatThrownBy(() -> authenticationService.changePassword(
+                principal(), "actual", "misma-clave-larga"))
+                .isInstanceOfSatisfying(BusinessException.class,
+                        ex -> assertThat(ex.getErrorCode()).isEqualTo(ErrorCode.PASSWORD_REUSE));
+
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("changePassword actualiza el hash y revoca las sesiones")
+    void changePasswordActualizaYRevoca() {
+        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("actual", user.getPasswordHash())).thenReturn(true);
+        when(passwordEncoder.matches("nueva-clave-larga", user.getPasswordHash())).thenReturn(false);
+        when(passwordEncoder.encode("nueva-clave-larga")).thenReturn("nuevo-hash");
+        when(refreshTokenRepository.revokeAllByUserId(user.getId())).thenReturn(2);
+
+        authenticationService.changePassword(principal(), "actual", "nueva-clave-larga");
+
+        assertThat(user.getPasswordHash()).isEqualTo("nuevo-hash");
+        verify(userRepository).save(user);
+        verify(refreshTokenRepository).revokeAllByUserId(user.getId());
+    }
+
+    private com.theblastbeast.security.UserPrincipal principal() {
+        return new com.theblastbeast.security.UserPrincipal(
+                user.getId(), user.getEmail(), user.getDisplayName(), user.getRole());
     }
 
     private RefreshToken token(String hash, boolean revoked, OffsetDateTime expiresAt) {

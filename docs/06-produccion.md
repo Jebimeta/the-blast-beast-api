@@ -151,6 +151,7 @@ secretos reales.
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD` | sí | PostgreSQL interno |
 | `JWT_SECRET` | sí | Mínimo 32 bytes; rotarlo invalida sesiones |
 | `AUTH_COOKIE_SECURE` | sí | `true` en producción |
+| `AUTH_LOGIN_WINDOW`, `AUTH_LOGIN_MAX_ATTEMPTS`, `AUTH_LOGIN_MAX_ATTEMPTS_PER_IP` | no | Ventana y límites de fallos de login; 15 min, 5 y 20 por defecto |
 | `STORAGE_PUBLIC_BASE_URL` | sí | `https://<dominio>/media` |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | no | Bootstrap del primer ADMIN si no hay usuarios |
 | `API_IMAGE_TAG`, `WEB_IMAGE_TAG` | no | `latest` o el SHA de cada repo; en producción, SHA |
@@ -163,10 +164,20 @@ Rotación:
 - **JWT_SECRET:** cambia el valor y reinicia la API; todas las sesiones quedan invalidadas.
 - **Contraseña de base de datos:** cámbiala en PostgreSQL y en `.env.prod`, y recrea los
   contenedores. No basta con reiniciar la API.
-- **ADMIN_PASSWORD:** solo se usa en el bootstrap inicial. Guárdala en un gestor de
-  contraseñas; no hay flujo de cambio desde el panel todavía.
+- **ADMIN_PASSWORD:** solo se usa en el bootstrap inicial. Cámbiala en `/admin/cuenta`
+  o, si pierdes el acceso, con `./ops/reset-admin-password.sh`.
 - **Token de GHCR:** usa un PAT con `read:packages` y caducidad; no reutilices el token
   de publicación.
+
+### Cambio y restablecimiento de contraseña
+
+- El administrador puede cambiar su contraseña en `/admin/cuenta`. Se exige la actual, la
+  nueva debe tener al menos 12 caracteres y se revocan todos los refrescos.
+- Si no puede entrar, `./ops/reset-admin-password.sh [email]` pide la nueva contraseña por
+  consola y ejecuta la API con el perfil `reset-password`. No envía correo, no abre el
+  puerto HTTP y termina al acabar. Requiere `.env.prod` y el stack desplegado.
+- El login limita los fallos por IP y por IP + email. Al superar el límite responde `429`
+  con `Retry-After`; el límite se guarda en memoria y se reinicia al reiniciar la API.
 
 La clave privada de age **no va al servidor**. Se guarda en el equipo del operador o en
 un gestor de secretos; sin ella los backups cifrados no se pueden restaurar.
@@ -185,6 +196,8 @@ un gestor de secretos; sin ella los backups cifrados no se pueden restaurar.
 - `upgrade-insecure-requests` solo en producción. El Caddyfile local mantiene las mismas
   cabeceras sin esa directiva porque sirve por HTTP.
 - `request_body max_size 12MB`, alineado con el límite multipart de Spring.
+- `X-Forwarded-For` se sobrescribe con la IP real del cliente para que el límite de login
+  por IP no se pueda falsificar desde fuera.
 - `respond 404` para `/actuator/*`, `/swagger-ui*` y `/v3/api-docs*`.
 - Logs JSON a stdout, rotados por Docker.
 

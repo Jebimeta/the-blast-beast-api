@@ -38,6 +38,9 @@ public enum ErrorCode {
     AUTH_REQUIRED(HttpStatus.UNAUTHORIZED, "AUTH-004", "Debes iniciar sesión"),
     REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "AUTH-005", "La sesión ya no es válida"),
     USER_DISABLED(HttpStatus.FORBIDDEN, "AUTH-006", "La cuenta está desactivada"),
+    CURRENT_PASSWORD_INVALID(HttpStatus.BAD_REQUEST, "AUTH-007", "La contraseña actual no es correcta"),
+    PASSWORD_REUSE(HttpStatus.BAD_REQUEST, "AUTH-008", "La nueva contraseña debe ser distinta"),
+    TOO_MANY_ATTEMPTS(HttpStatus.TOO_MANY_REQUESTS, "AUTH-009", "Demasiados intentos de inicio de sesión"),
 
     // Agenda
     CONCERT_NOT_FOUND(HttpStatus.NOT_FOUND, "CON-001", "Concierto no encontrado"),

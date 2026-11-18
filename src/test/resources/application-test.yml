@@ -24,6 +24,9 @@ blastbeast:
     cookie-name: bb_refresh
     cookie-secure: false
     cookie-domain:
+    login-window: PT15M
+    login-max-attempts: 3
+    login-max-attempts-per-ip: 10
   bootstrap:
     # Sin credenciales: los tests crean sus propios usuarios.
     email:
