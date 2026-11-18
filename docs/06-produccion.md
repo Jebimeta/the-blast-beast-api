@@ -146,7 +146,8 @@ secretos reales.
 |---|---|---|
 | `SITE_DOMAIN` | sí | Apex sin esquema ni `www` |
 | `ACME_EMAIL` | sí | Correo para Let's Encrypt |
-| `SITE_BASE_URL` | sí | `https://<dominio>`; canonical, OG y CORS |
+| `SITE_BASE_URL` | sí | `https://<dominio>`; canonical, OG y origen CORS por defecto |
+| `CORS_ALLOWED_ORIGINS` | no | Orígenes CORS permitidos separados por coma; vacío = `SITE_BASE_URL`; si se define sustituye al del sitio; no admite `*` |
 | `ALLOWED_HOSTS` | sí | Dominio y `www` separados por coma |
 | `DB_NAME`, `DB_USER`, `DB_PASSWORD` | sí | PostgreSQL interno |
 | `JWT_SECRET` | sí | Mínimo 32 bytes; rotarlo invalida sesiones |
@@ -158,6 +159,18 @@ secretos reales.
 | `BACKUP_DIR`, `BACKUP_RETENTION_DAYS` | no | 14 días por defecto |
 | `BACKUP_AGE_RECIPIENT` | recomendado | Clave pública age para cifrar backups |
 | `ALERT_WEBHOOK_URL` | recomendado | Slack o Discord (`/slack` al final) |
+
+CORS:
+
+- La API solo acepta peticiones de navegador con `Origin` en la lista. Sin
+  `CORS_ALLOWED_ORIGINS` se usa `SITE_BASE_URL`; si se define, sustituye al origen del
+  sitio, no se suma a él.
+- Los orígenes se normalizan al arrancar (minúsculas, sin barra final y sin puerto por
+  defecto). Un valor inválido o `*` impide el arranque: no se degrada a aceptar todo.
+- El navegador llega a `/api/*` por el mismo origen a través de Caddy, así que en
+  producción CORS no interviene en la navegación normal. La lista protege el acceso
+  directo a la API desde otros orígenes y evita que un `fetch` ajeno lea la respuesta.
+- El SSR llama a la API de servidor a servidor y no envía `Origin`.
 
 Rotación:
 

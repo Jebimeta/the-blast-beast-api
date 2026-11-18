@@ -1,5 +1,6 @@
 package com.theblastbeast.config;
 
+import com.theblastbeast.properties.CorsProperties;
 import com.theblastbeast.properties.SiteProperties;
 import com.theblastbeast.security.JwtAuthenticationFilter;
 import com.theblastbeast.security.RestSecurityHandler;
@@ -26,6 +27,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final SiteProperties siteProperties;
+    private final CorsProperties corsProperties;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RestSecurityHandler restSecurityHandler;
 
@@ -84,10 +86,12 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(siteProperties.baseUrl().split(",")));
+        configuration.setAllowedOrigins(
+                corsProperties.effectiveOrigins(siteProperties.baseUrl()));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "Origin"));
-        configuration.setExposedHeaders(List.of("Location"));
+        configuration.setAllowedHeaders(
+                List.of("Authorization", "Content-Type", "Accept", "If-None-Match"));
+        configuration.setExposedHeaders(List.of("Location", "ETag"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

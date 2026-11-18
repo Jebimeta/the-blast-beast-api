@@ -38,7 +38,7 @@ regression` y monitorización de producción. Eso pertenece a M5.
 - **Utilidades de siembra.** `seedUser`, `seedCategory`, `seedBand`, `seedTag`,
   `seedArticle`, `loginAsAdmin` y `refreshCookie` evitan repetir *setup* en cada test.
 
-Distribución de los 63 tests de integración:
+Distribución de los 67 tests de integración:
 
 | Clase | Tests | Qué cubre |
 |---|---|---|
@@ -49,11 +49,12 @@ Distribución de los 63 tests de integración:
 | `AdminTaxonomyIT` | 6 | Categorías, bandas y etiquetas |
 | `AdminMediaIT` | 5 | Subida multipart, variantes WebP y protección de imágenes en uso |
 | `ReleaseIT` | 5 | Radar de lanzamientos: CRUD y listado público |
+| `CorsIT` | 4 | Preflight y peticiones reales desde el origen del sitio y desde uno ajeno |
 | `SeoIT` | 4 | Sitemap, robots, feeds y cabeceras de caché |
 | `ConcertImportIT` | 1 | Importación de eventos de Ticketmaster |
 
-Los unitarios (79, Surefire) siguen cubriendo la lógica pura de servicios, mappers y
-controladores con Mockito. `mvn clean verify` encadena ambas fases: Surefire en `test`,
+Los unitarios (85, Surefire) siguen cubriendo la lógica pura de servicios, mappers,
+controladores y propiedades con Mockito. `mvn clean verify` encadena ambas fases: Surefire en `test`,
 Failsafe en `verify`.
 
 ## Cobertura

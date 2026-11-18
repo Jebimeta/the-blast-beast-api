@@ -304,10 +304,11 @@ web/src/app/
 
 ## 7. Seguridad
 
-- Access token JWT (15 min) en **memoria**; refresh token (7 días) en cookie `HttpOnly; Secure; SameSite=Strict`, hash SHA-256 en BD.
+- Access token JWT (15 min) en **memoria**; refresh token (30 días por defecto) en cookie `HttpOnly; SameSite=Lax; path=/api/v1/auth`, `Secure` en producción, hash SHA-256 en BD.
 - Rotación de refresh token y revocación en logout.
 - BCrypt (coste 12) para contraseñas.
-- CORS cerrado al dominio del front; CSRF desactivado solo en endpoints sin cookie, activado en `/auth/*`.
+- CORS cerrado a los orígenes configurados (`CORS_ALLOWED_ORIGINS` o `SITE_BASE_URL`), con credenciales y lista explícita; `*` prohibido.
+- CSRF desactivado: la autenticación viaja en `Authorization` y la cookie de refresco es `HttpOnly` y `SameSite=Lax`, así que no se envía en peticiones cruzadas.
 - Rate limiting en login y en escritura (`bucket4j`).
 - CSP, HSTS, `X-Content-Type-Options`, `Referrer-Policy`.
 - Secretos por entorno; `gitleaks` en CI.

@@ -76,6 +76,11 @@ blastbeast:
     name: The Blast Beast
     base-url: ${SITE_BASE_URL:http://localhost:4200}
     default-locale: es
+  cors:
+    # Orígenes permitidos por CORS, separados por comas. Si queda vacío se usa
+    # `site.base-url`; si se define, sustituye a ese origen. No admite '*':
+    # la API envía credenciales.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
   auth:
     # Sin valor por defecto: en producción debe venir de JWT_SECRET.
     # Los perfiles dev/local traen una clave de desarrollo.
