@@ -366,7 +366,9 @@ Pendiente de datos del titular antes de publicar:
 
 Cuando estén disponibles:
 
-1. Añadir `/aviso-legal` con titular, NIF, domicilio, correo y condiciones de uso.
+1. Rellenar `LEGAL_DATA` en `the-blast-beast-web/src/app/features/static/legal-data.ts`
+   (titular, NIF, domicilio y correo) y revisar `/aviso-legal`; la página ya existe, pero
+   mientras falten los datos se publica con `noindex` y un aviso visible.
 2. Actualizar `/privacidad` con la identidad del responsable y, si aplica, transferencias
    internacionales.
 3. Enlazar el aviso legal desde el pie.
@@ -387,9 +389,9 @@ Después del primer despliegue real:
 1. Crear la propiedad de dominio en Search Console y verificarla por DNS TXT.
 2. Enviar `https://<dominio>/sitemap.xml`.
 3. Comprobar `robots.txt`, canonical, Open Graph y JSON-LD en la portada y en un detalle.
-4. Revisar que las URLs prerenderizadas (`/sobre`, `/contacto`, `/privacidad`) llevan el
-   dominio correcto, no `localhost`.
-5. Solicitar indexación de la portada y de las secciones principales.
+4. Revisar que las URLs prerenderizadas (`/sobre`, `/contacto`, `/privacidad`,
+   `/aviso-legal`) llevan el dominio correcto, no `localhost`.
+5. Solicitar indexación de la portada, la agenda y las secciones principales.
 6. Configurar el monitor externo y el webhook de alertas.
 7. Ejecutar un backup manual y una restauración de prueba en el VPS real.
 8. Revisar los logs de Caddy y de la API tras las primeras visitas.
@@ -432,5 +434,5 @@ echo | openssl s_client -servername <dominio> -connect <dominio>:443 2>/dev/null
 - [ ] Primer despliegue y verificación de TLS, sitemap, robots y feeds.
 - [ ] Backup real + restauración de prueba en el VPS.
 - [ ] Monitor externo y webhook de alertas.
-- [ ] Datos legales del titular y `/aviso-legal`.
+- [ ] Datos legales del titular en `LEGAL_DATA` y revisión de `/aviso-legal`.
 - [ ] Search Console verificada y sitemap enviado.

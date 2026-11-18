@@ -9,6 +9,8 @@ import com.theblastbeast.domain.entity.Article;
 import com.theblastbeast.domain.entity.ArticleStatus;
 import com.theblastbeast.domain.entity.Band;
 import com.theblastbeast.domain.entity.Category;
+import com.theblastbeast.domain.entity.Concert;
+import com.theblastbeast.domain.entity.ConcertStatus;
 import com.theblastbeast.domain.entity.MediaAsset;
 import com.theblastbeast.domain.entity.User;
 import com.theblastbeast.domain.vo.MediaAssetKind;
@@ -18,7 +20,11 @@ import com.theblastbeast.properties.SiteProperties;
 import com.theblastbeast.repository.ArticleRepository;
 import com.theblastbeast.repository.BandRepository;
 import com.theblastbeast.repository.CategoryRepository;
+import com.theblastbeast.repository.ConcertRepository;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,6 +41,8 @@ class SitemapServiceTest {
 
     private static final SiteProperties PROPERTIES =
             new SiteProperties("The Blast Beast", "https://theblastbeast.test/", "es");
+    private static final Clock CLOCK =
+            Clock.fixed(Instant.parse("2026-11-18T10:00:00Z"), ZoneOffset.UTC);
 
     @Mock
     private ArticleRepository articleRepository;
@@ -43,6 +52,9 @@ class SitemapServiceTest {
 
     @Mock
     private BandRepository bandRepository;
+
+    @Mock
+    private ConcertRepository concertRepository;
 
     @Mock
     private MediaService mediaService;
@@ -55,7 +67,7 @@ class SitemapServiceTest {
     @BeforeEach
     void setUp() {
         sitemapService = new SitemapService(articleRepository, categoryRepository,
-                bandRepository, mediaService, PROPERTIES);
+                bandRepository, concertRepository, mediaService, PROPERTIES, CLOCK);
 
         category = new Category();
         category.setId(1L);
@@ -98,9 +110,11 @@ class SitemapServiceTest {
         assertThat(xml).startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/articulos</loc>");
+        assertThat(xml).contains("<loc>https://theblastbeast.test/agenda</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/sobre</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/contacto</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/privacidad</loc>");
+        assertThat(xml).contains("<loc>https://theblastbeast.test/aviso-legal</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/categorias/noticias</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/bandas/metallica</loc>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/articulos/metallica-anuncia-gira</loc>");
@@ -148,5 +162,35 @@ class SitemapServiceTest {
 
         assertThat(xml).doesNotContain("<lastmod>");
         assertThat(xml).contains("<loc>https://theblastbeast.test/</loc>");
+    }
+
+    @Test
+    @DisplayName("incluye la agenda y los conciertos próximos visibles")
+    void incluyeAgendaYConciertos() {
+        Concert concert = new Concert();
+        concert.setSlug("demo-metallica-madrid");
+        concert.setStartAt(OffsetDateTime.parse("2026-12-01T20:00:00Z"));
+        concert.setUpdatedAt(OffsetDateTime.parse("2026-11-10T09:00:00Z"));
+        concert.setStatus(ConcertStatus.ON_SALE);
+        concert.setHidden(false);
+
+        when(articleRepository.findAllByStatusWithCover(ArticleStatus.PUBLISHED))
+                .thenReturn(List.of());
+        when(categoryRepository.findAll(any(Sort.class))).thenReturn(List.of());
+        when(bandRepository.findAll(any(Sort.class))).thenReturn(List.of());
+        when(concertRepository.findUpcomingForSitemap(any(), any(), any()))
+                .thenReturn(List.of(concert));
+        when(mediaService.toSummaryMap(any())).thenReturn(Map.of());
+
+        String xml = sitemapService.build();
+
+        assertThat(xml).contains("<loc>https://theblastbeast.test/agenda</loc>");
+        assertThat(xml).contains(
+                "<loc>https://theblastbeast.test/agenda/demo-metallica-madrid</loc>");
+        assertThat(xml).contains("<lastmod>2026-11-10T09:00:00Z</lastmod>");
+        verify(concertRepository).findUpcomingForSitemap(
+                List.of(ConcertStatus.CANCELLED, ConcertStatus.ARCHIVED),
+                OffsetDateTime.parse("2026-11-18T10:00:00Z"),
+                PageRequest.of(0, 500));
     }
 }

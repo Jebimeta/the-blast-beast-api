@@ -52,7 +52,7 @@ Distribución de los 63 tests de integración:
 | `SeoIT` | 4 | Sitemap, robots, feeds y cabeceras de caché |
 | `ConcertImportIT` | 1 | Importación de eventos de Ticketmaster |
 
-Los unitarios (78, Surefire) siguen cubriendo la lógica pura de servicios, mappers y
+Los unitarios (79, Surefire) siguen cubriendo la lógica pura de servicios, mappers y
 controladores con Mockito. `mvn clean verify` encadena ambas fases: Surefire en `test`,
 Failsafe en `verify`.
 

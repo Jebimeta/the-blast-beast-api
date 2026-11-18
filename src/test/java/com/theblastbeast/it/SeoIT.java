@@ -71,6 +71,8 @@ class SeoIT extends AbstractIntegrationTest {
         assertThat(response.getBody())
                 .contains("<loc>" + BASE + "/</loc>")
                 .contains("<loc>" + BASE + "/articulos/metallica-anuncia-gira</loc>")
+                .contains("<loc>" + BASE + "/agenda</loc>")
+                .contains("<loc>" + BASE + "/aviso-legal</loc>")
                 .contains("<loc>" + BASE + "/categorias/noticias</loc>")
                 .contains("<loc>" + BASE + "/bandas/metallica</loc>")
                 .contains("<image:loc>" + BASE + "/media/2026/01/portada-hero.webp</image:loc>");

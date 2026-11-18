@@ -4,6 +4,8 @@ import com.theblastbeast.domain.entity.Article;
 import com.theblastbeast.domain.entity.ArticleStatus;
 import com.theblastbeast.domain.entity.Band;
 import com.theblastbeast.domain.entity.Category;
+import com.theblastbeast.domain.entity.Concert;
+import com.theblastbeast.domain.entity.ConcertStatus;
 import com.theblastbeast.domain.entity.MediaAsset;
 import com.theblastbeast.domain.vo.MediaAssetKind;
 import com.theblastbeast.domain.vo.MediaSummary;
@@ -12,7 +14,9 @@ import com.theblastbeast.properties.SiteProperties;
 import com.theblastbeast.repository.ArticleRepository;
 import com.theblastbeast.repository.BandRepository;
 import com.theblastbeast.repository.CategoryRepository;
+import com.theblastbeast.repository.ConcertRepository;
 import com.theblastbeast.util.XmlSupport;
+import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -20,6 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,12 +42,17 @@ public class SitemapService {
 
     private static final String SITEMAP_NS = "http://www.sitemaps.org/schemas/sitemap/0.9";
     private static final String IMAGE_NS = "http://www.google.com/schemas/sitemap-image/1.1";
+    private static final int SITEMAP_CONCERT_LIMIT = 500;
+    private static final List<ConcertStatus> EXCLUDED_CONCERTS =
+            List.of(ConcertStatus.CANCELLED, ConcertStatus.ARCHIVED);
 
     private final ArticleRepository articleRepository;
     private final CategoryRepository categoryRepository;
     private final BandRepository bandRepository;
+    private final ConcertRepository concertRepository;
     private final MediaService mediaService;
     private final SiteProperties siteProperties;
+    private final Clock clock;
 
     @Transactional(readOnly = true)
     public String build() {
@@ -53,6 +63,9 @@ public class SitemapService {
         List<Category> categories = categoryRepository.findAll(
                 Sort.by("sortOrder").ascending().and(Sort.by("name").ascending()));
         List<Band> bands = bandRepository.findAll(Sort.by("name").ascending());
+        List<Concert> concerts = concertRepository.findUpcomingForSitemap(
+                EXCLUDED_CONCERTS, OffsetDateTime.now(clock),
+                PageRequest.of(0, SITEMAP_CONCERT_LIMIT));
 
         List<MediaAsset> covers = articles.stream()
                 .map(Article::getCoverMedia)
@@ -67,6 +80,12 @@ public class SitemapService {
                 .max(OffsetDateTime::compareTo)
                 .map(XmlSupport::lastmod)
                 .orElse(null);
+        String agendaLatest = concerts.stream()
+                .map(Concert::getUpdatedAt)
+                .filter(Objects::nonNull)
+                .max(OffsetDateTime::compareTo)
+                .map(XmlSupport::lastmod)
+                .orElse(null);
         Map<Long, OffsetDateTime> categoryUpdates = categoryUpdates(articles);
 
         StringBuilder xml = new StringBuilder(4096);
@@ -76,9 +95,11 @@ public class SitemapService {
 
         appendUrl(xml, base + "/", latest, "hourly", "1.0", null);
         appendUrl(xml, base + "/articulos", latest, "daily", "0.8", null);
+        appendUrl(xml, base + "/agenda", agendaLatest, "daily", "0.7", null);
         appendUrl(xml, base + "/sobre", null, "monthly", "0.4", null);
         appendUrl(xml, base + "/contacto", null, "monthly", "0.3", null);
         appendUrl(xml, base + "/privacidad", null, "monthly", "0.2", null);
+        appendUrl(xml, base + "/aviso-legal", null, "monthly", "0.2", null);
 
         for (Category category : categories) {
             appendUrl(xml, base + "/categorias/" + category.getSlug(),
@@ -86,6 +107,10 @@ public class SitemapService {
         }
         for (Band band : bands) {
             appendUrl(xml, base + "/bandas/" + band.getSlug(), null, "weekly", "0.5", null);
+        }
+        for (Concert concert : concerts) {
+            appendUrl(xml, base + "/agenda/" + concert.getSlug(),
+                    XmlSupport.lastmod(concert.getUpdatedAt()), "weekly", "0.5", null);
         }
         for (Article article : articles) {
             MediaAsset cover = article.getCoverMedia();
@@ -95,7 +120,8 @@ public class SitemapService {
         }
 
         xml.append("</urlset>\n");
-        log.debug("END - SitemapService -> build() - {} artículos", articles.size());
+        log.debug("END - SitemapService -> build() - {} artículos, {} conciertos",
+                articles.size(), concerts.size());
         return xml.toString();
     }
 

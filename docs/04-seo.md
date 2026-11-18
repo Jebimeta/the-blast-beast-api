@@ -11,8 +11,11 @@ externos:
 - `sitemap.xml` con URLs absolutas, `lastmod` e imagen de portada.
 - `robots.txt` dinámico que bloquea el panel y la API.
 - RSS 2.0 global y por categoría, con el HTML completo y saneado de cada artículo.
-- JSON-LD `WebSite`/`Organization` con `SearchAction`, `NewsArticle` y `BreadcrumbList`.
-- Páginas estáticas `/sobre`, `/contacto` y `/privacidad` prerenderizadas en build.
+- JSON-LD `WebSite`/`Organization` con `SearchAction`, `NewsArticle`, `ItemList` de agenda,
+  `Event` por concierto y `BreadcrumbList`.
+- Páginas estáticas `/sobre`, `/contacto`, `/privacidad` y `/aviso-legal` prerenderizadas
+  en build.
+- Agenda pública `/agenda` y `/agenda/{slug}` incluida en el sitemap.
 - Enlaces de descubrimiento del feed y del sitemap en el `<head>`.
 
 Fuera de M3: envío automático a Search Console, feeds por banda o etiqueta, AMP,
@@ -44,17 +47,22 @@ contamina el contrato OpenAPI JSON.
 |---|---|---|---|
 | `/` | `hourly` | `1.0` | Actualización del artículo más reciente |
 | `/articulos` | `daily` | `0.8` | Actualización del artículo más reciente |
+| `/agenda` | `daily` | `0.7` | Última actualización de un concierto próximo |
 | `/sobre` | `monthly` | `0.4` | — |
 | `/contacto` | `monthly` | `0.3` | — |
 | `/privacidad` | `monthly` | `0.2` | — |
+| `/aviso-legal` | `monthly` | `0.2` | — |
 | `/categorias/{slug}` | `daily` | `0.6` | Último artículo publicado de esa categoría |
 | `/bandas/{slug}` | `weekly` | `0.5` | — |
+| `/agenda/{slug}` | `weekly` | `0.5` | `updatedAt` del concierto |
 | `/articulos/{slug}` | `weekly` | `0.7` | `updatedAt` del artículo |
 
 Reglas:
 
 - Solo entran artículos `PUBLISHED`. Los borradores y archivados responden 404/410 y no
   deben indexarse.
+- Solo entran conciertos próximos (`startAt >= ahora`), visibles (`hidden = false`) y con
+  estado distinto de `CANCELLED` o `ARCHIVED`. El listado se limita a 500 eventos.
 - Todas las URLs son absolutas y salen de `SITE_BASE_URL`; nunca rutas relativas.
 - Si un artículo tiene portada, se añade la extensión de imágenes de Google con la
   variante `hero` en `<image:loc>`. El original no se publica.
@@ -110,6 +118,8 @@ JSON-LD (varios scripts gestionados por `id`, sin duplicados):
 |---|---|
 | Portada | `WebSite` + `Organization` con `SearchAction` a `/buscar?q=` |
 | Detalle de artículo | `NewsArticle` con autor, sección, fechas, imagen y `mainEntityOfPage` |
+| Agenda | `ItemList` con los conciertos de la página y `BreadcrumbList` |
+| Detalle de concierto | `Event` con fechas, recinto, precios y artistas + `BreadcrumbList` |
 | Detalle, categoría y banda | `BreadcrumbList` con posiciones y URLs absolutas |
 
 Descubrimiento del feed:
@@ -121,21 +131,26 @@ Descubrimiento del feed:
 
 ## Páginas estáticas y prerender selectivo
 
-Rutas nuevas: `/sobre`, `/contacto` y `/privacidad`, con contenido propio y el mismo
-layout público.
+Rutas nuevas: `/sobre`, `/contacto`, `/privacidad` y `/aviso-legal`, con contenido propio y
+el mismo layout público. La agenda (`/agenda` y `/agenda/{slug}`) se renderiza en servidor
+por petición porque depende de la API de conciertos.
 
 `app.routes.server.ts` queda así:
 
 | Ruta | Modo |
 |---|---|
-| `/sobre`, `/contacto`, `/privacidad` | `RenderMode.Prerender` |
+| `/sobre`, `/contacto`, `/privacidad`, `/aviso-legal` | `RenderMode.Prerender` |
 | `/admin/**` | `RenderMode.Client` |
-| Resto | `RenderMode.Server` |
+| Resto (incluida `/agenda`) | `RenderMode.Server` |
 
-El prerender de las tres páginas ocurre en `npm run build`. Como no dependen de datos
+El prerender de las cuatro páginas ocurre en `npm run build`. Como no dependen de datos
 dinámicos, el build no necesita la API. `CategoryStore.load()` falla de forma controlada
 si la API no está disponible: el HTML prerenderizado sale sin las categorías en la
 navegación y se hidrata en el navegador.
+
+`/aviso-legal` lee sus datos de `legal-data.ts`. Mientras falten el titular, el NIF o el
+domicilio, la página muestra un aviso de configuración pendiente y se publica con
+`noindex`: el despliegue debe considerarse bloqueado hasta rellenarlos.
 
 `SITE_BASE_URL` debe ser el origen público **en tiempo de build** para que el canonical y
 Open Graph de las páginas prerenderizadas apunten al dominio real. El `Dockerfile` acepta
@@ -160,8 +175,8 @@ del `handle` general del SSR.
 
 Backend: **29 tests** (21 previos + 8 de M3):
 
-- `SitemapServiceTest` (3): URLs públicas absolutas, variante `hero` como imagen y
-  ausencia de `lastmod` sin artículos.
+- `SitemapServiceTest` (4): URLs públicas absolutas, variante `hero` como imagen,
+  ausencia de `lastmod` sin artículos y conciertos próximos.
 - `FeedServiceTest` (3): RSS global con contenido, autor y portada; feed de categoría;
   categoría desconocida.
 - `SeoControllerTest` (2): ETag/304 del sitemap y reglas de `robots.txt`.
@@ -179,7 +194,9 @@ Verificación en Docker a través de Caddy (`http://localhost:8088`):
 - `/categorias/conciertos/feed.xml`: 200 con título y `atom:link` propios;
   `/categorias/inexistente/feed.xml`: 404.
 - ETag del sitemap: segunda petición con `If-None-Match` devuelve 304.
-- `/sobre`, `/contacto`, `/privacidad`: 200 con canonical absoluto al origen público.
+- `/sobre`, `/contacto`, `/privacidad` y `/aviso-legal`: 200 con canonical absoluto al
+  origen público (el aviso legal sale con `noindex` mientras falten los datos del titular).
+- `/agenda` y `/agenda/{slug}`: 200, `ItemList`/`Event`, canonical y `BreadcrumbList`.
 - Portada: enlace RSS y JSON-LD `WebSite`/`SearchAction`.
 - Artículo: `NewsArticle`, `BreadcrumbList`, canonical y `og:image` con la variante `hero`.
 - Categoría paginada: canonical con `?page=1`, feed propio y `BreadcrumbList`.
@@ -189,6 +206,8 @@ Verificación en Docker a través de Caddy (`http://localhost:8088`):
 
 - Un único sitemap. El límite de 50 000 URLs / 50 MB se alcanzará muy lejos con el ritmo
   actual; cuando ocurra, se parte en un índice de sitemaps.
+- El sitemap incluye como máximo 500 conciertos próximos. Si la agenda crece por encima,
+  hay que paginar o subir el límite antes de que se queden eventos fuera.
 - Los feeds devuelven 30 ítems y no paginan; es el comportamiento habitual en RSS.
 - El sitemap se regenera en cada petición. Si el tráfico o el catálogo crecen, el siguiente
   paso es cachear el XML en memoria con invalidación al publicar.
