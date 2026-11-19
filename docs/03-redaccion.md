@@ -116,6 +116,10 @@ Reglas:
 - Archivar un artículo hace que su URL pública responda `410`.
 - Cada `PUT` guarda la versión anterior en `article_revisions` con editor y fecha.
 - Las categorías con artículos no se pueden borrar (`CATEGORY_IN_USE`).
+- La categoría (sección del portal) y las etiquetas se eligen por separado, con dos
+  desplegables independientes. La sección «Noticias» filtra por la etiqueta `noticias`,
+  no por la categoría: un artículo de la categoría Noticias solo aparece allí si lleva
+  además esa etiqueta.
 
 ## Markdown y saneado
 
