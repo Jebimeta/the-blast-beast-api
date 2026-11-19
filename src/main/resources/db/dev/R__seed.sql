@@ -33,13 +33,9 @@ on conflict (slug) do nothing;
 insert into tags (slug, name) values
     ('giras', 'Giras'),
     ('festivales', 'Festivales'),
-    ('nuevo-disco', 'Nuevo disco'),
-    ('nuevo-single', 'Nuevo single'),
     ('entrevistas', 'Entrevistas'),
-    ('progresivo', 'Progresivo'),
     ('documental', 'Documental'),
-    ('noticias', 'Noticias'),
-    ('espana', 'España')
+    ('noticias', 'Noticias')
 on conflict (slug) do nothing;
 
 -- ---------------------------------------------------------------------
@@ -277,15 +273,9 @@ insert into article_tags (article_id, tag_id)
 select a.id, t.id
 from (values
     ('metallica-anuncia-gira-europea-2027', 'giras'),
-    ('metallica-anuncia-gira-europea-2027', 'espana'),
-    ('judas-priest-entra-al-estudio', 'nuevo-disco'),
     ('resurrection-fest-2027-cartel', 'festivales'),
-    ('resurrection-fest-2027-cartel', 'espana'),
     ('opeth-entrevista-mikael-aekerfeldt', 'entrevistas'),
-    ('opeth-entrevista-mikael-aekerfeldt', 'progresivo'),
-    ('gojira-estrena-the-silent-tide', 'nuevo-single'),
     ('sabaton-tres-fechas-espana', 'giras'),
-    ('sabaton-tres-fechas-espana', 'espana'),
     ('iron-maiden-prepara-documental', 'documental'),
     ('nightwish-anuncia-paron-indefinido', 'noticias')
 ) as v(article_slug, tag_slug)
@@ -336,3 +326,11 @@ from (values
        genre, genre_slug, label, listen_url, notes, featured)
 left join bands b on b.slug = v.band_slug
 on conflict (slug) do nothing;
+
+-- ---------------------------------------------------------------------
+-- Etiquetas retiradas
+-- Al ser una migración repetible, este borrado también limpia las bases
+-- de desarrollo que ya tuvieran las etiquetas antiguas.
+-- ---------------------------------------------------------------------
+delete from tags
+where slug in ('nuevo-disco', 'nuevo-single', 'progresivo', 'espana');
