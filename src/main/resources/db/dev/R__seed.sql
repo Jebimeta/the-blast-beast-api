@@ -269,6 +269,21 @@ join articles a on a.slug = v.article_slug
 join bands b on b.slug = v.band_slug
 on conflict do nothing;
 
+-- El seed es la fuente de verdad de las etiquetas de estos artículos. Una base
+-- ya sembrada conserva filas de versiones anteriores porque el insert usa
+-- `on conflict do nothing`, así que se limpian antes de recrearlas.
+delete from article_tags
+where article_id in (
+    select id from articles where slug in (
+        'metallica-anuncia-gira-europea-2027',
+        'resurrection-fest-2027-cartel',
+        'opeth-entrevista-mikael-aekerfeldt',
+        'sabaton-tres-fechas-espana',
+        'iron-maiden-prepara-documental',
+        'nightwish-anuncia-paron-indefinido'
+    )
+);
+
 insert into article_tags (article_id, tag_id)
 select a.id, t.id
 from (values
