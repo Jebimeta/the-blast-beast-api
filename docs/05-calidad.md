@@ -104,6 +104,9 @@ Detalles que hacen la suite fiable:
   falla. Ambos directorios están en `.gitignore`.
 - `npm run e2e` y `npm run lighthouse` se ejecutan contra el mismo stack levantado con
   `docker-compose.e2e.yml`; el job de CI lo destruye con `down -v` al terminar.
+- El e2e de contactos monta el fixture `src/test/resources/press/` de la API en `/app/docs`.
+  El CSV real vive en el repo privado de despliegue y no se usa en CI, así que la suite no
+  depende de datos de contacto reales.
 
 ## Accesibilidad
 

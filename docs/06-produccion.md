@@ -52,6 +52,8 @@ Internet
 - **Contactos de prensa:** `./docs` se monta en `/app/docs` (solo lectura) para que la API
   lea `contactos-prensa-e-imagenes.csv`. Si el checkout desplegado no incluye `docs/`, la
   vista `/admin/contactos` responde `503 PRESS-001`; el resto del portal no se ve afectado.
+- **El repo de despliegue debe ser privado:** `docs/` contiene correos de prensa. El stack
+  e2e de la web no usa este CSV: monta el fixture `src/test/resources/press/` de la API.
 
 `docker-compose.prod.yml` añade límites de memoria (512 MB db/web, 768 MB API, 128 MB
 Caddy), logs `json-file` rotados (10 MB × 5), healthchecks, `init: true`,
