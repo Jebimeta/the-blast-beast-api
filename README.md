@@ -199,10 +199,10 @@ Flyway aplica las migraciones `V1`–`V3` en el primer arranque: 16 tablas de do
 ./mvnw verify
 ```
 
-**Tests unitarios** (Surefire, sin base de datos): 78 tests con JUnit 5, AssertJ y Mockito
+**Tests unitarios** (Surefire, sin base de datos): 91 tests con JUnit 5, AssertJ y Mockito
 sobre servicios, mappers y controladores.
 
-**Tests de integración** (Failsafe, PostgreSQL real): 63 tests en `src/test/java/com/theblastbeast/it`
+**Tests de integración** (Failsafe, PostgreSQL real): 69 tests en `src/test/java/com/theblastbeast/it`
 que arrancan un contenedor `postgres:17-alpine` con Testcontainers, aplican Flyway y prueban
 la API completa vía HTTP: lectura pública, autenticación y rotación de refrescos, cambio de
 contraseña y bloqueo por intentos, CRUD editorial con revisiones, taxonomía, medios con
@@ -210,7 +210,7 @@ variantes WebP, radar de lanzamientos, agenda, resumen social y sitemap/robots/f
 
 **Cobertura** (JaCoCo): el build falla si la cobertura de líneas de
 `com.theblastbeast.service` baja del 70 %. El informe se genera en `target/site/jacoco/`.
-Cobertura actual: **92,3 % de líneas** y 66,1 % de ramas.
+Cobertura actual: **92,2 % de líneas** y 67,4 % de ramas.
 
 > Los tests de integración necesitan Docker en marcha. En CI, `ubuntu-latest` ya lo incluye.
 > Un único contenedor `postgres:17-alpine` se reutiliza durante toda la ejecución; entre

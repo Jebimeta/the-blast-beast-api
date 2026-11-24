@@ -2085,16 +2085,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ConcertArtist'
-        ticketUrl:
-          type: string
-        priceMin:
-          type: number
-          format: double
-        priceMax:
-          type: number
-          format: double
-        currency:
-          type: string
         featured:
           type: boolean
 
@@ -2140,16 +2130,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ConcertArtist'
-        ticketUrl:
-          type: string
-        priceMin:
-          type: number
-          format: double
-        priceMax:
-          type: number
-          format: double
-        currency:
-          type: string
         featured:
           type: boolean
         imageUrl:
@@ -2157,8 +2137,6 @@ components:
         imageAttribution:
           type: string
         source:
-          type: string
-        sourceUrl:
           type: string
 
     ConcertPage:

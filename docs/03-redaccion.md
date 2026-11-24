@@ -196,7 +196,7 @@ el contenido de ejemplo de M1. Es repetible y no se carga en producción.
 
 ## Pruebas
 
-- Backend: 91 tests unitarios y 68 de integración con Testcontainers. La vista de
+- Backend: 91 tests unitarios y 69 de integración con Testcontainers. La vista de
   contactos añade `PressContactServiceTest` (6 casos) y `AdminPressContactsIT`.
 - Frontend: 43 tests unitarios (páginas públicas y de redacción, incluida la vista de
   contactos de prensa).

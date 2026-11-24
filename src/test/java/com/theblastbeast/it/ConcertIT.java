@@ -107,6 +107,18 @@ class ConcertIT extends AbstractIntegrationTest {
     }
 
     @Test
+    @DisplayName("no expone precios ni enlaces de entradas")
+    void noExponePreciosNiEnlacesDeEntradas() {
+        String list = rest.getForObject("/api/v1/concerts", String.class);
+        String detail = rest.getForObject(
+                "/api/v1/concerts/" + madridMetal.getSlug(), String.class);
+
+        assertThat(list).doesNotContain("ticketUrl", "priceMin", "priceMax", "currency");
+        assertThat(detail).doesNotContain(
+                "ticketUrl", "priceMin", "priceMax", "currency", "sourceUrl");
+    }
+
+    @Test
     @DisplayName("expone facetas de géneros, ciudades, bandas y días")
     void exponeFacetas() {
         ConcertFacets facets = rest.getForObject("/api/v1/concerts/facets", ConcertFacets.class);

@@ -12,7 +12,7 @@ en CI, así que una regresión rompe el build.
 
 | Pieza | Herramienta | Criterio |
 |---|---|---|
-| Integración backend | Testcontainers + Failsafe | PostgreSQL 17 real, 68 tests |
+| Integración backend | Testcontainers + Failsafe | PostgreSQL 17 real, 69 tests |
 | Cobertura | JaCoCo | Líneas de `com.theblastbeast.service` ≥ 70 % |
 | E2E | Playwright | 32 tests sobre el stack completo |
 | Accesibilidad | `@axe-core/playwright` | WCAG 2.1 AA, 0 violaciones |
@@ -38,14 +38,14 @@ regression` y monitorización de producción. Eso pertenece a M5.
 - **Utilidades de siembra.** `seedUser`, `seedCategory`, `seedBand`, `seedTag`,
   `seedArticle`, `loginAsAdmin` y `refreshCookie` evitan repetir *setup* en cada test.
 
-Distribución de los 68 tests de integración:
+Distribución de los 69 tests de integración:
 
 | Clase | Tests | Qué cubre |
 |---|---|---|
 | `AuthIT` | 13 | Login, rotación de refresco, reuso, logout, cambio de contraseña y bloqueo por intentos |
 | `PublicApiIT` | 11 | Listado, destacados, detalle, categorías, bandas, búsqueda, 404/410 |
 | `AdminArticleIT` | 11 | CRUD, estados, revisiones, publicación y borrado |
-| `ConcertIT` | 7 | Agenda pública, detalle, filtros y sincronización editorial |
+| `ConcertIT` | 8 | Agenda pública, detalle, filtros, contrato sin precios y sincronización editorial |
 | `AdminTaxonomyIT` | 6 | Categorías, bandas y etiquetas |
 | `AdminMediaIT` | 5 | Subida multipart, variantes WebP y protección de imágenes en uso |
 | `AdminPressContactsIT` | 1 | CSV de contactos autenticado y 401 sin sesión |

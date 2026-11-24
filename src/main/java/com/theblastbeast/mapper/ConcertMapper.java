@@ -29,7 +29,6 @@ public class ConcertMapper {
         detail.setImageUrl(concert.getImageUrl());
         detail.setImageAttribution(concert.getImageAttribution());
         detail.setSource(sourceLabel(concert.getSource()));
-        detail.setSourceUrl(concert.getSourceUrl());
         return detail;
     }
 
@@ -68,10 +67,6 @@ public class ConcertMapper {
         summary.setGenreLabel(genreLabel(concert));
         summary.setVenue(toVenueSummary(concert.getVenue()));
         summary.setArtists(toArtists(concert));
-        summary.setTicketUrl(concert.getTicketUrl());
-        summary.setPriceMin(toDouble(concert.getPriceMin()));
-        summary.setPriceMax(toDouble(concert.getPriceMax()));
-        summary.setCurrency(concert.getCurrency());
         summary.setFeatured(concert.isFeatured());
     }
 
@@ -87,10 +82,6 @@ public class ConcertMapper {
         detail.setGenreLabel(genreLabel(concert));
         detail.setVenue(toVenueDetail(concert.getVenue()));
         detail.setArtists(toArtists(concert));
-        detail.setTicketUrl(concert.getTicketUrl());
-        detail.setPriceMin(toDouble(concert.getPriceMin()));
-        detail.setPriceMax(toDouble(concert.getPriceMax()));
-        detail.setCurrency(concert.getCurrency());
         detail.setFeatured(concert.isFeatured());
     }
 
