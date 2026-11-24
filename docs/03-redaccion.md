@@ -108,6 +108,7 @@ Todos exigen `Authorization: Bearer` y responden `401`/`403` si falta el token o
 | POST | `/api/v1/admin/media` | Subir imagen (multipart, máx. 10 MB) |
 | PUT | `/api/v1/admin/media/{id}` | Editar texto alternativo y crédito |
 | DELETE | `/api/v1/admin/media/{id}` | Borrar; `409 MEDIA_IN_USE` si es portada |
+| GET | `/api/v1/admin/press-contacts` | CSV de contactos de prensa e imagen (solo autenticado) |
 
 Reglas:
 
@@ -160,6 +161,7 @@ Rutas bajo `/admin`, renderizadas en cliente (`RenderMode.Client`):
 | `/admin/articulos/:id` | Editor con vista previa, autoguardado e historial |
 | `/admin/taxonomia` | Pestañas de categorías, bandas y etiquetas |
 | `/admin/medios` | Biblioteca con subida, edición y borrado |
+| `/admin/contactos` | Contactos de prensa con búsqueda, filtro por categoría y descarga CSV/Excel |
 | `/admin/cuenta` | Cambio de contraseña del usuario autenticado |
 
 Detalles:
@@ -173,6 +175,20 @@ Detalles:
 - La taxonomía recarga `CategoryStore` para que la navegación pública refleje los cambios
   sin recargar la página.
 
+## Contactos de prensa e imagen
+
+- La fuente única sigue siendo `docs/contactos-prensa-e-imagenes.csv` (coma) y
+  `docs/contactos-prensa-e-imagenes-excel.csv` (punto y coma) en el repo raíz.
+- `PressContactService` lee el CSV desde `blastbeast.press-contacts.csv-path` (por defecto
+  `../docs/contactos-prensa-e-imagenes.csv`). En Docker, el compose monta `./docs` en
+  `/app/docs` en solo lectura.
+- `GET /api/v1/admin/press-contacts` exige sesión y devuelve las filas como JSON. No hay
+  ruta pública ni copia estática en la web.
+- `/admin/contactos` permite buscar, filtrar por categoría y descargar la selección en CSV
+  o Excel. La descarga se genera en el navegador con los datos ya autenticados.
+- Si el CSV no existe o le faltan columnas, la API responde `503 PRESS-001` y la página
+  muestra un aviso; no se inventan contactos ni se degrada a una lista vacía.
+
 ## Seed de desarrollo
 
 `src/main/resources/db/dev/R__seed.sql` crea/actualiza el usuario de redacción y mantiene
@@ -180,9 +196,10 @@ el contenido de ejemplo de M1. Es repetible y no se carga en producción.
 
 ## Pruebas
 
-- Backend: 21 tests unitarios (`ArticleService` 9, `AuthenticationService` 6,
-  `MarkdownService` 3, `SlugService` 2, `PingController` 1).
-- Frontend: 3 tests (portada con datos y vacía, shell con header/footer).
+- Backend: 91 tests unitarios y 68 de integración con Testcontainers. La vista de
+  contactos añade `PressContactServiceTest` (6 casos) y `AdminPressContactsIT`.
+- Frontend: 43 tests unitarios (páginas públicas y de redacción, incluida la vista de
+  contactos de prensa).
 - Verificación manual en navegador: login, restauración de sesión, guard, CRUD de
   artículos y taxonomía, subida de medios con variantes, protección de medios en uso,
   revisiones, 404/410 públicos y logout.

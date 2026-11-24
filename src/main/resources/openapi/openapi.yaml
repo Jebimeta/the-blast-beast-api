@@ -49,6 +49,8 @@ tags:
     description: Gestión editorial del radar de lanzamientos
   - name: admin-media
     description: Biblioteca de medios
+  - name: admin-press-contacts
+    description: Contactos de prensa e imagen (solo redacción)
 
 paths:
   /api/v1/ping:
@@ -1406,6 +1408,36 @@ paths:
           $ref: '#/components/responses/NotFound'
         '409':
           $ref: '#/components/responses/Conflict'
+
+  # -------------------------------------------------------------------
+  # Contactos de prensa e imagen (redacción)
+  # -------------------------------------------------------------------
+  /api/v1/admin/press-contacts:
+    get:
+      tags:
+        - admin-press-contacts
+      operationId: listAdminPressContacts
+      summary: Contactos de prensa, bancos de imágenes, sellos y festivales
+      description: |
+        Lee el CSV interno de contactos de prensa e imagen. Solo está
+        disponible para usuarios autenticados de la redacción.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista completa de contactos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PressContactList'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '503':
+          description: El CSV de contactos no está disponible en el servidor
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
 components:
   securitySchemes:
@@ -2905,3 +2937,64 @@ components:
         credit:
           type: string
           maxLength: 200
+
+    PressContact:
+      type: object
+      required:
+        - categoria
+        - nombre
+        - tipo
+        - pais
+        - web
+        - enlace
+        - email
+        - contactoNombre
+        - idioma
+        - tipoDeMaterial
+        - licenciaUso
+        - notas
+        - verificado
+      properties:
+        categoria:
+          type: string
+        nombre:
+          type: string
+        tipo:
+          type: string
+        pais:
+          type: string
+        web:
+          type: string
+        enlace:
+          type: string
+        email:
+          type: string
+        contactoNombre:
+          type: string
+        idioma:
+          type: string
+        tipoDeMaterial:
+          type: string
+        licenciaUso:
+          type: string
+        notas:
+          type: string
+        verificado:
+          type: string
+
+    PressContactList:
+      type: object
+      required:
+        - rows
+        - total
+      properties:
+        rows:
+          type: array
+          items:
+            $ref: '#/components/schemas/PressContact'
+        total:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+          description: Fecha de última modificación del CSV en el servidor

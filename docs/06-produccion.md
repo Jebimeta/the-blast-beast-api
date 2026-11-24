@@ -49,6 +49,9 @@ Internet
   y `...-web`, etiquetadas con `latest` y con el SHA del commit.
 - **Volúmenes:** `pgdata`, `media`, `caddy_data` y `caddy_config`. Los backups no viven
   dentro de esos volúmenes.
+- **Contactos de prensa:** `./docs` se monta en `/app/docs` (solo lectura) para que la API
+  lea `contactos-prensa-e-imagenes.csv`. Si el checkout desplegado no incluye `docs/`, la
+  vista `/admin/contactos` responde `503 PRESS-001`; el resto del portal no se ve afectado.
 
 `docker-compose.prod.yml` añade límites de memoria (512 MB db/web, 768 MB API, 128 MB
 Caddy), logs `json-file` rotados (10 MB × 5), healthchecks, `init: true`,
@@ -154,6 +157,7 @@ secretos reales.
 | `AUTH_COOKIE_SECURE` | sí | `true` en producción |
 | `AUTH_LOGIN_WINDOW`, `AUTH_LOGIN_MAX_ATTEMPTS`, `AUTH_LOGIN_MAX_ATTEMPTS_PER_IP` | no | Ventana y límites de fallos de login; 15 min, 5 y 20 por defecto |
 | `STORAGE_PUBLIC_BASE_URL` | sí | `https://<dominio>/media` |
+| `PRESS_CONTACTS_CSV_PATH` | no | Ruta del CSV dentro del contenedor; por defecto `/app/docs/contactos-prensa-e-imagenes.csv` |
 | `ADMIN_EMAIL`, `ADMIN_PASSWORD` | no | Bootstrap del primer ADMIN si no hay usuarios |
 | `API_IMAGE_TAG`, `WEB_IMAGE_TAG` | no | `latest` o el SHA de cada repo; en producción, SHA |
 | `BACKUP_DIR`, `BACKUP_RETENTION_DAYS` | no | 14 días por defecto |

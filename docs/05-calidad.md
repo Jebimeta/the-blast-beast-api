@@ -12,9 +12,9 @@ en CI, así que una regresión rompe el build.
 
 | Pieza | Herramienta | Criterio |
 |---|---|---|
-| Integración backend | Testcontainers + Failsafe | PostgreSQL 17 real, 41 tests |
+| Integración backend | Testcontainers + Failsafe | PostgreSQL 17 real, 68 tests |
 | Cobertura | JaCoCo | Líneas de `com.theblastbeast.service` ≥ 70 % |
-| E2E | Playwright | 12 tests sobre el stack completo |
+| E2E | Playwright | 32 tests sobre el stack completo |
 | Accesibilidad | `@axe-core/playwright` | WCAG 2.1 AA, 0 violaciones |
 | Rendimiento y SEO | Lighthouse CI | Móvil: 90 / 95 / 90 / 95 |
 
@@ -38,7 +38,7 @@ regression` y monitorización de producción. Eso pertenece a M5.
 - **Utilidades de siembra.** `seedUser`, `seedCategory`, `seedBand`, `seedTag`,
   `seedArticle`, `loginAsAdmin` y `refreshCookie` evitan repetir *setup* en cada test.
 
-Distribución de los 67 tests de integración:
+Distribución de los 68 tests de integración:
 
 | Clase | Tests | Qué cubre |
 |---|---|---|
@@ -48,12 +48,13 @@ Distribución de los 67 tests de integración:
 | `ConcertIT` | 7 | Agenda pública, detalle, filtros y sincronización editorial |
 | `AdminTaxonomyIT` | 6 | Categorías, bandas y etiquetas |
 | `AdminMediaIT` | 5 | Subida multipart, variantes WebP y protección de imágenes en uso |
+| `AdminPressContactsIT` | 1 | CSV de contactos autenticado y 401 sin sesión |
 | `ReleaseIT` | 5 | Radar de lanzamientos: CRUD y listado público |
 | `CorsIT` | 4 | Preflight y peticiones reales desde el origen del sitio y desde uno ajeno |
 | `SeoIT` | 4 | Sitemap, robots, feeds y cabeceras de caché |
 | `ConcertImportIT` | 1 | Importación de eventos de Ticketmaster |
 
-Los unitarios (85, Surefire) siguen cubriendo la lógica pura de servicios, mappers,
+Los unitarios (91, Surefire) siguen cubriendo la lógica pura de servicios, mappers,
 controladores y propiedades con Mockito. `mvn clean verify` encadena ambas fases: Surefire en `test`,
 Failsafe en `verify`.
 
@@ -88,9 +89,9 @@ permite apuntar a otro entorno.
 
 | Spec | Tests | Contenido |
 |---|---|---|
-| `e2e/public.spec.ts` | 12 | Portada, detalle, archivo, búsqueda, 404 real, estáticas, sitemap/robots/feed |
-| `e2e/admin.spec.ts` | 4 | Login obligatorio, ciclo crear→publicar→verificar→borrar, CRUD del radar, filtros |
-| `e2e/a11y.spec.ts` | 11 | axe sobre páginas públicas, login y panel autenticado |
+| `e2e/public.spec.ts` | 13 | Portada, detalle, archivo, búsqueda, agenda, 404 real, estáticas, sitemap/robots/feed |
+| `e2e/admin.spec.ts` | 5 | Login obligatorio, ciclo crear→publicar→verificar→borrar, CRUD del radar, filtros y contactos de prensa |
+| `e2e/a11y.spec.ts` | 14 | axe sobre páginas públicas, login y panel autenticado |
 
 Detalles que hacen la suite fiable:
 
@@ -98,7 +99,7 @@ Detalles que hacen la suite fiable:
   portal y **lo borra al final**; si falla antes, deja rastro y hay que limpiarlo a mano.
 - Los tests de accesibilidad recorren las rutas principales y el panel autenticado, no
   solo una página de muestra.
-- En CI, `retries: 1` y `workers: 2`; en local, paralelismo completo.
+- En CI, `retries: 1` y `workers: 2`; en local también 2 workers, porque axe y el SSR son intensivos en CPU.
 - Playwright genera `playwright-report/` y guarda traza, captura y vídeo solo cuando algo
   falla. Ambos directorios están en `.gitignore`.
 - `npm run e2e` y `npm run lighthouse` se ejecutan contra el mismo stack levantado con

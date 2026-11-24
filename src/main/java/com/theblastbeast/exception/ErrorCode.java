@@ -54,7 +54,11 @@ public enum ErrorCode {
     MEDIA_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "MED-002", "El archivo supera el tamaño máximo"),
     MEDIA_NOT_FOUND(HttpStatus.NOT_FOUND, "MED-003", "Medio no encontrado"),
     MEDIA_IN_USE(HttpStatus.CONFLICT, "MED-004", "El medio se usa como portada de un artículo"),
-    MEDIA_PROCESSING_ERROR(HttpStatus.BAD_REQUEST, "MED-005", "No se pudo procesar la imagen");
+    MEDIA_PROCESSING_ERROR(HttpStatus.BAD_REQUEST, "MED-005", "No se pudo procesar la imagen"),
+
+    // Contactos de prensa
+    PRESS_CONTACTS_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE, "PRESS-001",
+            "Los contactos de prensa no están disponibles");
 
     private final HttpStatus status;
     private final String code;
