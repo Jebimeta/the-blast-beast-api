@@ -165,8 +165,8 @@ class SitemapServiceTest {
     }
 
     @Test
-    @DisplayName("incluye la agenda y los conciertos próximos visibles")
-    void incluyeAgendaYConciertos() {
+    @DisplayName("incluye la agenda con el lastmod de los conciertos próximos visibles")
+    void incluyeAgendaConLastmodDeConciertos() {
         Concert concert = new Concert();
         concert.setSlug("demo-metallica-madrid");
         concert.setStartAt(OffsetDateTime.parse("2026-12-01T20:00:00Z"));
@@ -185,8 +185,7 @@ class SitemapServiceTest {
         String xml = sitemapService.build();
 
         assertThat(xml).contains("<loc>https://theblastbeast.test/agenda</loc>");
-        assertThat(xml).contains(
-                "<loc>https://theblastbeast.test/agenda/demo-metallica-madrid</loc>");
+        assertThat(xml).doesNotContain("/agenda/demo-metallica-madrid");
         assertThat(xml).contains("<lastmod>2026-11-10T09:00:00Z</lastmod>");
         verify(concertRepository).findUpcomingForSitemap(
                 List.of(ConcertStatus.CANCELLED, ConcertStatus.ARCHIVED),

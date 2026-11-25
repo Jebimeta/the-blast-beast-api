@@ -108,10 +108,6 @@ public class SitemapService {
         for (Band band : bands) {
             appendUrl(xml, base + "/bandas/" + band.getSlug(), null, "weekly", "0.5", null);
         }
-        for (Concert concert : concerts) {
-            appendUrl(xml, base + "/agenda/" + concert.getSlug(),
-                    XmlSupport.lastmod(concert.getUpdatedAt()), "weekly", "0.5", null);
-        }
         for (Article article : articles) {
             MediaAsset cover = article.getCoverMedia();
             appendUrl(xml, base + "/articulos/" + article.getSlug(),
