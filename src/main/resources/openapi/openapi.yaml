@@ -47,8 +47,6 @@ tags:
     description: Gestión de etiquetas
   - name: admin-releases
     description: Gestión editorial del radar de lanzamientos
-  - name: admin-media
-    description: Biblioteca de medios
   - name: admin-press-contacts
     description: Contactos de prensa e imagen (solo redacción)
 
@@ -670,6 +668,112 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/admin/articles/{id}/cover:
+    put:
+      tags:
+        - admin-articles
+      operationId: uploadArticleCover
+      summary: Sube o reemplaza la portada del artículo
+      description: >
+        La portada pertenece al artículo: no hay biblioteca compartida. Al
+        reemplazarla se elimina la imagen anterior y sus variantes. Si no se
+        envía texto alternativo se usa el titular del artículo.
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                altText:
+                  type: string
+                  maxLength: 300
+                credit:
+                  type: string
+                  maxLength: 200
+      responses:
+        '200':
+          description: Artículo con la portada actualizada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminArticleDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '413':
+          description: El archivo supera el tamaño máximo
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '415':
+          description: Formato de archivo no admitido
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      tags:
+        - admin-articles
+      operationId: updateArticleCover
+      summary: Actualiza el texto alternativo y el crédito de la portada
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MediaUpdateRequest'
+      responses:
+        '200':
+          description: Artículo con los metadatos de portada actualizados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminArticleDetail'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags:
+        - admin-articles
+      operationId: deleteArticleCover
+      summary: Quita la portada del artículo y borra sus archivos
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/ArticleId'
+      responses:
+        '200':
+          description: Artículo sin portada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminArticleDetail'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/v1/admin/articles/{id}/publish:
     post:
       tags:
@@ -1273,141 +1377,6 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '404':
           $ref: '#/components/responses/NotFound'
-
-  # -------------------------------------------------------------------
-  # Medios (redacción)
-  # -------------------------------------------------------------------
-  /api/v1/admin/media:
-    get:
-      tags:
-        - admin-media
-      operationId: listAdminMedia
-      summary: Biblioteca de medios paginada
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/Page'
-        - $ref: '#/components/parameters/Size'
-        - name: q
-          in: query
-          description: Texto libre sobre texto alternativo o crédito
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Página de medios
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MediaPage'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-    post:
-      tags:
-        - admin-media
-      operationId: uploadAdminMedia
-      summary: Sube una imagen y genera variantes thumb y hero
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          multipart/form-data:
-            schema:
-              type: object
-              required:
-                - file
-              properties:
-                file:
-                  type: string
-                  format: binary
-                altText:
-                  type: string
-                  maxLength: 300
-                credit:
-                  type: string
-                  maxLength: 200
-      responses:
-        '201':
-          description: Medio subido
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MediaAssetResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '413':
-          description: El archivo supera el tamaño máximo
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-        '415':
-          description: Formato de archivo no admitido
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-
-  /api/v1/admin/media/{id}:
-    patch:
-      tags:
-        - admin-media
-      operationId: updateAdminMedia
-      summary: Actualiza texto alternativo y crédito
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MediaUpdateRequest'
-      responses:
-        '200':
-          description: Medio actualizado
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MediaAssetResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      tags:
-        - admin-media
-      operationId: deleteAdminMedia
-      summary: Elimina un medio y sus variantes
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-            format: int64
-      responses:
-        '204':
-          description: Medio eliminado
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
 
   # -------------------------------------------------------------------
   # Contactos de prensa e imagen (redacción)
@@ -2545,9 +2514,6 @@ components:
           items:
             type: integer
             format: int64
-        coverMediaId:
-          type: integer
-          format: int64
         seoTitle:
           type: string
           maxLength: 200
@@ -2770,7 +2736,7 @@ components:
           maxLength: 80
 
     # -----------------------------------------------------------------
-    # Medios
+    # Portadas de artículos
     # -----------------------------------------------------------------
     MediaAssetKind:
       type: string
@@ -2835,76 +2801,6 @@ components:
         bytes:
           type: integer
           format: int64
-
-    MediaAssetResponse:
-      type: object
-      required:
-        - id
-        - kind
-        - url
-        - mimeType
-        - width
-        - height
-        - bytes
-        - createdAt
-        - variants
-      properties:
-        id:
-          type: integer
-          format: int64
-        kind:
-          $ref: '#/components/schemas/MediaAssetKind'
-        url:
-          type: string
-        mimeType:
-          type: string
-        width:
-          type: integer
-        height:
-          type: integer
-        bytes:
-          type: integer
-          format: int64
-        altText:
-          type: string
-        credit:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        variants:
-          type: array
-          items:
-            $ref: '#/components/schemas/MediaVariant'
-
-    MediaPage:
-      type: object
-      required:
-        - content
-        - page
-        - size
-        - totalElements
-        - totalPages
-        - first
-        - last
-      properties:
-        content:
-          type: array
-          items:
-            $ref: '#/components/schemas/MediaAssetResponse'
-        page:
-          type: integer
-        size:
-          type: integer
-        totalElements:
-          type: integer
-          format: int64
-        totalPages:
-          type: integer
-        first:
-          type: boolean
-        last:
-          type: boolean
 
     MediaUpdateRequest:
       type: object

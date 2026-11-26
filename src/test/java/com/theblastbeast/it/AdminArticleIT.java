@@ -136,6 +136,7 @@ class AdminArticleIT extends AbstractIntegrationTest {
     void cicloEditorial() {
         String token = loginAsAdmin();
         AdminArticleDetail created = createArticle("Noticia para publicar");
+        assertThat(uploadCover(token, created.getId()).getStatusCode()).isEqualTo(HttpStatus.OK);
 
         ResponseEntity<AdminArticleDetail> published = post(token,
                 "/api/v1/admin/articles/" + created.getId() + "/publish");
@@ -191,6 +192,7 @@ class AdminArticleIT extends AbstractIntegrationTest {
         String token = loginAsAdmin();
         AdminArticleDetail draft = createArticle("Entrevista con Opeth");
         AdminArticleDetail toPublish = createArticle("Crónica de festival");
+        uploadCover(token, toPublish.getId());
         post(token, "/api/v1/admin/articles/" + toPublish.getId() + "/publish");
 
         ResponseEntity<AdminArticlePage> drafts = rest.exchange(

@@ -12,6 +12,7 @@ import com.theblastbeast.domain.entity.Role;
 import com.theblastbeast.domain.entity.Tag;
 import com.theblastbeast.domain.entity.User;
 import com.theblastbeast.domain.entity.UserStatus;
+import com.theblastbeast.domain.vo.AdminArticleDetail;
 import com.theblastbeast.domain.vo.AuthResponse;
 import com.theblastbeast.repository.ArticleRepository;
 import com.theblastbeast.repository.BandRepository;
@@ -23,15 +24,24 @@ import com.theblastbeast.repository.TagRepository;
 import com.theblastbeast.repository.UserRepository;
 import com.theblastbeast.repository.VenueRepository;
 import com.theblastbeast.security.LoginRateLimiter;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
+import javax.imageio.ImageIO;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -40,6 +50,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
@@ -203,6 +215,60 @@ public abstract class AbstractIntegrationTest {
         article.setPublishedAt(publishedAt);
         article.setReadingMinutes(1);
         return articleRepository.saveAndFlush(article);
+    }
+
+    protected ResponseEntity<AdminArticleDetail> uploadCover(String token, Long articleId) {
+        return uploadCover(token, articleId, "Portada de prueba", "Foto: Blast Beast");
+    }
+
+    protected ResponseEntity<AdminArticleDetail> uploadCover(
+            String token, Long articleId, String altText, String credit) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(token);
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        return rest.exchange(
+                "/api/v1/admin/articles/" + articleId + "/cover",
+                HttpMethod.PUT,
+                new HttpEntity<>(multipartCover(
+                        png(640, 360), "image/png", "portada.png", altText, credit), headers),
+                AdminArticleDetail.class);
+    }
+
+    protected MultiValueMap<String, Object> multipartCover(byte[] content, String contentType,
+            String filename, String altText, String credit) {
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        ByteArrayResource resource = new ByteArrayResource(content) {
+            @Override
+            public String getFilename() {
+                return filename;
+            }
+        };
+        HttpHeaders partHeaders = new HttpHeaders();
+        partHeaders.setContentType(MediaType.parseMediaType(contentType));
+        body.add("file", new HttpEntity<>(resource, partHeaders));
+        if (altText != null) {
+            body.add("altText", altText);
+        }
+        if (credit != null) {
+            body.add("credit", credit);
+        }
+        return body;
+    }
+
+    protected byte[] png(int width, int height) {
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        Graphics2D graphics = image.createGraphics();
+        graphics.setColor(Color.DARK_GRAY);
+        graphics.fillRect(0, 0, width, height);
+        graphics.dispose();
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        try {
+            ImageIO.write(image, "png", output);
+        } catch (IOException exception) {
+            throw new IllegalStateException("No se pudo generar el PNG de prueba", exception);
+        }
+        return output.toByteArray();
     }
 
     protected String loginAsAdmin() {

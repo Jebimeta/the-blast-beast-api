@@ -6,7 +6,6 @@ import com.theblastbeast.domain.entity.ArticleStatus;
 import com.theblastbeast.domain.entity.Band;
 import com.theblastbeast.domain.entity.Category;
 import com.theblastbeast.domain.entity.MediaAsset;
-import com.theblastbeast.domain.entity.MediaKind;
 import com.theblastbeast.domain.entity.Tag;
 import com.theblastbeast.domain.entity.User;
 import com.theblastbeast.domain.vo.AdminArticleDetail;
@@ -16,6 +15,7 @@ import com.theblastbeast.domain.vo.AdminArticleSummary;
 import com.theblastbeast.domain.vo.ArticleRevisionResponse;
 import com.theblastbeast.domain.vo.ArticleWriteRequest;
 import com.theblastbeast.domain.vo.MarkdownPreviewResponse;
+import com.theblastbeast.domain.vo.MediaUpdateRequest;
 import com.theblastbeast.exception.BusinessException;
 import com.theblastbeast.exception.ErrorCode;
 import com.theblastbeast.mapper.AdminArticleMapper;
@@ -23,7 +23,6 @@ import com.theblastbeast.repository.ArticleRepository;
 import com.theblastbeast.repository.ArticleRevisionRepository;
 import com.theblastbeast.repository.BandRepository;
 import com.theblastbeast.repository.CategoryRepository;
-import com.theblastbeast.repository.MediaAssetRepository;
 import com.theblastbeast.repository.TagRepository;
 import com.theblastbeast.repository.UserRepository;
 import com.theblastbeast.security.CurrentUserProvider;
@@ -42,6 +41,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -56,7 +56,6 @@ public class AdminArticleService {
     private final CategoryRepository categoryRepository;
     private final BandRepository bandRepository;
     private final TagRepository tagRepository;
-    private final MediaAssetRepository mediaAssetRepository;
     private final UserRepository userRepository;
     private final AdminArticleMapper mapper;
     private final MarkdownService markdownService;
@@ -133,8 +132,50 @@ public class AdminArticleService {
     @Transactional
     public void delete(Long id) {
         Article article = find(id);
+        MediaAsset cover = article.getCoverMedia();
         articleRepository.delete(article);
+        articleRepository.flush();
+        deleteCoverIfUnused(cover);
         log.info("END - AdminArticleService -> delete() - id={}", id);
+    }
+
+    @Transactional
+    public AdminArticleDetail uploadCover(Long id, MultipartFile file, String altText, String credit) {
+        log.debug("INIT - AdminArticleService -> uploadCover() - id={}", id);
+        Article article = find(id);
+        MediaAsset previous = article.getCoverMedia();
+        MediaAsset cover = mediaService.upload(file, coverAlt(article, altText), credit);
+        article.setCoverMedia(cover);
+        articleRepository.saveAndFlush(article);
+        deleteCoverIfUnused(previous);
+
+        AdminArticleDetail response = toDetail(article);
+        log.info("END - AdminArticleService -> uploadCover() - id={}, cover={}", id, cover.getId());
+        return response;
+    }
+
+    @Transactional
+    public AdminArticleDetail updateCover(Long id, MediaUpdateRequest request) {
+        Article article = find(id);
+        MediaAsset cover = article.getCoverMedia();
+        if (cover == null) {
+            throw new BusinessException(ErrorCode.MEDIA_NOT_FOUND);
+        }
+        mediaService.updateMetadata(cover, coverAlt(article, request.getAltText()), request.getCredit());
+        return toDetail(article);
+    }
+
+    @Transactional
+    public AdminArticleDetail removeCover(Long id) {
+        Article article = find(id);
+        MediaAsset cover = article.getCoverMedia();
+        if (cover != null) {
+            article.setCoverMedia(null);
+            articleRepository.saveAndFlush(article);
+            deleteCoverIfUnused(cover);
+            log.info("END - AdminArticleService -> removeCover() - id={}", id);
+        }
+        return toDetail(article);
     }
 
     @Transactional
@@ -209,7 +250,6 @@ public class AdminArticleService {
         article.setCategory(resolveCategory(request.getCategoryId()));
         article.setBands(resolveBands(request.getBandIds()));
         article.setTags(resolveTags(request.getTagIds()));
-        article.setCoverMedia(resolveCover(request.getCoverMediaId()));
         article.setSeoTitle(trimToNull(request.getSeoTitle()));
         article.setSeoDescription(trimToNull(request.getSeoDescription()));
         article.setCanonicalUrl(trimToNull(request.getCanonicalUrl()));
@@ -244,13 +284,17 @@ public class AdminArticleService {
         return new LinkedHashSet<>(tags);
     }
 
-    private MediaAsset resolveCover(Long mediaId) {
-        if (mediaId == null) {
-            return null;
+    private String coverAlt(Article article, String altText) {
+        return StringUtils.hasText(altText) ? altText.trim() : article.getTitle();
+    }
+
+    private void deleteCoverIfUnused(MediaAsset cover) {
+        if (cover == null) {
+            return;
         }
-        return mediaAssetRepository.findById(mediaId)
-                .filter(asset -> asset.getKind() == MediaKind.ORIGINAL)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MEDIA_NOT_FOUND));
+        if (!articleRepository.existsByCoverMediaId(cover.getId())) {
+            mediaService.deleteAsset(cover);
+        }
     }
 
     private String resolveSlug(String requested, String title, Long currentId) {
@@ -277,6 +321,9 @@ public class AdminArticleService {
         }
         if (article.getCategory() == null) {
             missing.add("categoría");
+        }
+        if (article.getCoverMedia() == null) {
+            missing.add("portada");
         }
         if (!missing.isEmpty()) {
             throw new BusinessException(ErrorCode.ARTICLE_NOT_READY,

@@ -38,7 +38,7 @@ regression` y monitorización de producción. Eso pertenece a M5.
 - **Utilidades de siembra.** `seedUser`, `seedCategory`, `seedBand`, `seedTag`,
   `seedArticle`, `loginAsAdmin` y `refreshCookie` evitan repetir *setup* en cada test.
 
-Distribución de los 69 tests de integración:
+Distribución de los 72 tests de integración:
 
 | Clase | Tests | Qué cubre |
 |---|---|---|
@@ -47,7 +47,7 @@ Distribución de los 69 tests de integración:
 | `AdminArticleIT` | 11 | CRUD, estados, revisiones, publicación y borrado |
 | `ConcertIT` | 8 | Agenda pública, detalle, filtros, contrato sin precios y sincronización editorial |
 | `AdminTaxonomyIT` | 6 | Categorías, bandas y etiquetas |
-| `AdminMediaIT` | 5 | Subida multipart, variantes WebP y protección de imágenes en uso |
+| `AdminArticleCoverIT` | 8 | Subida multipart, variantes WebP, reemplazo, metadatos, borrado conjunto y publicación con portada |
 | `AdminPressContactsIT` | 1 | CSV de contactos autenticado y 401 sin sesión |
 | `ReleaseIT` | 5 | Radar de lanzamientos: CRUD y listado público |
 | `CorsIT` | 4 | Preflight y peticiones reales desde el origen del sitio y desde uno ajeno |
@@ -75,8 +75,8 @@ donde una regla global se diluiría entre mappers y VOs generados.
 
 | Métrica (servicios) | Valor |
 |---|---|
-| Líneas | **1548 / 1677 = 92,3 %** |
-| Ramas | 395 / 598 = 66,1 % |
+| Líneas | **1490 / 1604 = 92,9 %** |
+| Ramas | 379 / 535 = 70,8 % |
 
 El informe HTML queda en `target/site/jacoco/index.html` y CI publica el `.exec`, el XML y
 los reportes de Surefire/Failsafe como artefactos.
@@ -90,13 +90,14 @@ permite apuntar a otro entorno.
 | Spec | Tests | Contenido |
 |---|---|---|
 | `e2e/public.spec.ts` | 13 | Portada, detalle, archivo, búsqueda, agenda, 404 real, estáticas, sitemap/robots/feed |
-| `e2e/admin.spec.ts` | 5 | Login obligatorio, ciclo crear→publicar→verificar→borrar, CRUD del radar, filtros y contactos de prensa |
-| `e2e/a11y.spec.ts` | 14 | axe sobre páginas públicas, login y panel autenticado |
+| `e2e/admin.spec.ts` | 5 | Login obligatorio, ciclo crear→subir portada→publicar→verificar→borrar, CRUD del radar, filtros y contactos de prensa |
+| `e2e/a11y.spec.ts` | 13 | axe sobre páginas públicas, login y panel autenticado (la biblioteca de medios ya no existe) |
 
 Detalles que hacen la suite fiable:
 
-- El test editorial crea un artículo con marca de tiempo, comprueba que aparece en el
-  portal y **lo borra al final**; si falla antes, deja rastro y hay que limpiarlo a mano.
+- El test editorial crea un artículo con marca de tiempo, sube una portada, comprueba que
+  aparece en el portal con su imagen y **lo borra al final**; si falla antes, deja rastro y
+  hay que limpiarlo a mano. Tras el borrado verifica que la portada ya no se sirve.
 - Los tests de accesibilidad recorren las rutas principales y el panel autenticado, no
   solo una página de muestra.
 - En CI, `retries: 1` y `workers: 2`; en local también 2 workers, porque axe y el SSR son intensivos en CPU.
@@ -116,8 +117,10 @@ Criterio: **cero violaciones** en cada página escaneada.
 Lo que se corrigió al medir:
 
 - Contraste insuficiente en metadatos del listado editorial (`text-muted/60` → `text-muted`).
-- `<select>` de portada sin etiqueta asociada en el editor.
-- `<input type="file">` de medios sin nombre accesible (label `sr-only`).
+- El antiguo `<select>` de portada basado en biblioteca se sustituyó por un
+  `<input type="file">` etiquetado («Imagen de portada»), con alt, crédito y estados
+  anunciados con `role="status"`/`role="alert"`.
+- El editor ya no expone la ruta retirada `/admin/medios`.
 
 También se mantienen el enlace "Saltar al contenido", los landmarks (`header`, `nav`,
 `main`, `footer`), el foco visible y los `aria-label` de la navegación.

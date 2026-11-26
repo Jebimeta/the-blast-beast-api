@@ -8,6 +8,7 @@ import com.theblastbeast.domain.vo.ArticleRevisionResponse;
 import com.theblastbeast.domain.vo.ArticleWriteRequest;
 import com.theblastbeast.domain.vo.MarkdownPreviewRequest;
 import com.theblastbeast.domain.vo.MarkdownPreviewResponse;
+import com.theblastbeast.domain.vo.MediaUpdateRequest;
 import com.theblastbeast.domain.vo.SocialSummaryResponse;
 import com.theblastbeast.service.AdminArticleService;
 import com.theblastbeast.service.social.SocialSummaryService;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Component
@@ -53,6 +55,23 @@ public class AdminArticleController implements AdminArticlesApiDelegate {
     public ResponseEntity<Void> deleteAdminArticle(Long id) {
         adminArticleService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<AdminArticleDetail> uploadArticleCover(Long id, MultipartFile file,
+            String altText, String credit) {
+        log.debug("INIT - AdminArticleController -> uploadArticleCover() - id={}", id);
+        return ResponseEntity.ok(adminArticleService.uploadCover(id, file, altText, credit));
+    }
+
+    @Override
+    public ResponseEntity<AdminArticleDetail> updateArticleCover(Long id, MediaUpdateRequest request) {
+        return ResponseEntity.ok(adminArticleService.updateCover(id, request));
+    }
+
+    @Override
+    public ResponseEntity<AdminArticleDetail> deleteArticleCover(Long id) {
+        return ResponseEntity.ok(adminArticleService.removeCover(id));
     }
 
     @Override

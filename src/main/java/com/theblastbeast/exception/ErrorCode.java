@@ -49,11 +49,10 @@ public enum ErrorCode {
     RELEASE_NOT_FOUND(HttpStatus.NOT_FOUND, "REL-001", "Lanzamiento no encontrado"),
     RELEASE_BAND_NOT_FOUND(HttpStatus.NOT_FOUND, "REL-002", "La banda indicada no existe"),
 
-    // Medios
+    // Portadas de artículos
     UNSUPPORTED_MEDIA_TYPE(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "MED-001", "Formato de archivo no admitido"),
     MEDIA_TOO_LARGE(HttpStatus.PAYLOAD_TOO_LARGE, "MED-002", "El archivo supera el tamaño máximo"),
-    MEDIA_NOT_FOUND(HttpStatus.NOT_FOUND, "MED-003", "Medio no encontrado"),
-    MEDIA_IN_USE(HttpStatus.CONFLICT, "MED-004", "El medio se usa como portada de un artículo"),
+    MEDIA_NOT_FOUND(HttpStatus.NOT_FOUND, "MED-003", "Portada no encontrada"),
     MEDIA_PROCESSING_ERROR(HttpStatus.BAD_REQUEST, "MED-005", "No se pudo procesar la imagen"),
 
     // Contactos de prensa

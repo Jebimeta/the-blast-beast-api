@@ -1,13 +1,14 @@
 # M2 — Redacción
 
-> Estado: implementado y verificado en ejecución el 2026-11-08. Este documento describe
+> Estado: implementado y verificado en ejecución el 2026-11-26. Este documento describe
 > lo que hay construido, no lo que se planea.
 
 ## Alcance
 
 La redacción puede entrar en un panel privado y publicar sin tocar SQL: crear y editar
-noticias en Markdown, subir imágenes, gestionar categorías, bandas y etiquetas, consultar
-el historial de versiones y mover cada pieza entre borrador, publicado y archivado.
+noticias en Markdown, subir la portada propia de cada una, gestionar categorías, bandas y
+etiquetas, consultar el historial de versiones y mover cada pieza entre borrador, publicado
+y archivado.
 
 Fuera de M2: cuentas de personal con permisos distintos de ADMIN (el modelo ya los soporta),
 RSS, sitemap, prerender y despliegue en producción.
@@ -28,10 +29,13 @@ media_assets ──< media_assets (parent_id: original -> thumb / hero)
   timestamps. Añadir redactores no requiere cambios de esquema.
 - `refresh_tokens`: solo se guarda el hash SHA-256; `family_id` permite revocar toda la
   cadena cuando se detecta reutilización.
-- `media_assets`: el original y sus variantes comparten tabla; las variantes apuntan al
-  original con `parent_id`.
+- `media_assets`: almacena únicamente portadas de artículos. El original y sus variantes
+  comparten tabla; las variantes apuntan al original con `parent_id`. No hay biblioteca
+  compartida ni endpoint que liste medios.
 - `article_revisions`: copia inmutable del contenido antes de cada actualización.
-- `articles.cover_media_id`: portada opcional; una imagen en uso no se puede borrar.
+- `articles.cover_media_id`: portada obligatoria para publicar. Al reemplazarla o quitarla
+  se borran el original y sus variantes; al eliminar el artículo se limpia también su
+  portada si ya no está referenciada.
 
 ## Autenticación
 
@@ -104,16 +108,15 @@ Todos exigen `Authorization: Bearer` y responden `401`/`403` si falta el token o
 | PUT/DELETE | `/api/v1/admin/bands/{id}` | Editar y borrar |
 | GET/POST | `/api/v1/admin/tags` | Listar y crear |
 | PUT/DELETE | `/api/v1/admin/tags/{id}` | Editar y borrar |
-| GET | `/api/v1/admin/media` | Biblioteca paginada con búsqueda |
-| POST | `/api/v1/admin/media` | Subir imagen (multipart, máx. 10 MB) |
-| PUT | `/api/v1/admin/media/{id}` | Editar texto alternativo y crédito |
-| DELETE | `/api/v1/admin/media/{id}` | Borrar; `409 MEDIA_IN_USE` si es portada |
+| PUT | `/api/v1/admin/articles/{id}/cover` | Subir o reemplazar la portada (multipart, máx. 10 MB) |
+| PATCH | `/api/v1/admin/articles/{id}/cover` | Editar texto alternativo y crédito |
+| DELETE | `/api/v1/admin/articles/{id}/cover` | Quitar la portada y borrar sus archivos |
 | GET | `/api/v1/admin/press-contacts` | CSV de contactos de prensa e imagen (solo autenticado) |
 
 Reglas:
 
 - El `slug` es opcional; si no se envía se genera desde el título y se deduplica.
-- Publicar exige título, entradilla, cuerpo, categoría y slug único.
+- Publicar exige título, entradilla, cuerpo, categoría, slug único y portada (`ART-005`).
 - Archivar un artículo hace que su URL pública responda `410`.
 - Cada `PUT` guarda la versión anterior en `article_revisions` con editor y fecha.
 - Las categorías con artículos no se pueden borrar (`CATEGORY_IN_USE`).
@@ -136,7 +139,10 @@ El HTML crudo se permite para que la redacción pueda maquetar con `<figure>`/`<
 siempre se sanea antes de guardarlo o servirlo. El mismo servicio calcula los minutos de
 lectura.
 
-## Medios
+## Portada del artículo
+
+No existe biblioteca de medios: cada artículo tiene su propia portada, creada desde su
+editor y eliminada con él.
 
 - `StorageService` abstrae el almacenamiento. La implementación actual es
   `LocalStorageService` (disco); en M5 se añadirá R2/S3 sin tocar los servicios.
@@ -144,10 +150,16 @@ lectura.
   - `thumb` (480 px de ancho) para tarjetas y listados.
   - `hero` (1600 px de ancho) para el detalle.
 - Si la JVM no puede escribir WebP, las variantes caen a PNG en lugar de fallar.
-- Las imágenes se sirven en `/media/**` con caché pública de 30 días (`immutable`).
+- Formatos admitidos: JPEG, PNG, WebP y GIF; máximo 10 MB.
+- El texto alternativo vacío cae al titular del artículo. El crédito es opcional.
 - La API pública expone `cover` con sus `variants`, y el frontend elige `thumb` o `hero`
   según el contexto; nunca descarga el original en el portal.
-- Borrar una imagen usada como portada devuelve `409 MEDIA_IN_USE`.
+- Reemplazar una portada borra la anterior y sus variantes. Quitarla o eliminar el
+  artículo hace lo mismo con sus archivos; no quedan huérfanos.
+- Las imágenes se sirven en `/media/**` con caché pública de 30 días (`immutable`).
+- El panel sube la portada al seleccionar el archivo si el artículo ya existe y, en
+  artículos nuevos, al guardar el borrador. Si la subida falla, el artículo se guarda y el
+  editor permite reintentarla.
 
 ## Panel de redacción (Angular)
 
@@ -160,7 +172,6 @@ Rutas bajo `/admin`, renderizadas en cliente (`RenderMode.Client`):
 | `/admin/articulos/nuevo` | Editor de artículo nuevo |
 | `/admin/articulos/:id` | Editor con vista previa, autoguardado e historial |
 | `/admin/taxonomia` | Pestañas de categorías, bandas y etiquetas |
-| `/admin/medios` | Biblioteca con subida, edición y borrado |
 | `/admin/contactos` | Contactos de prensa con búsqueda, filtro por categoría y descarga CSV/Excel |
 | `/admin/cuenta` | Cambio de contraseña del usuario autenticado |
 
@@ -171,6 +182,8 @@ Detalles:
 - `adminGuard` protege el layout; las rutas públicas siguen siendo SSR.
 - El editor previsualiza Markdown con debounce de 500 ms y autoguarda a los 2,5 s de
   inactividad si el formulario es válido.
+- La tarjeta «Portada» permite seleccionar imagen, alt y crédito, guardar metadatos y
+  quitarla. Muestra la previsualización local antes de subir y la variante `thumb` después.
 - El historial permite restaurar cualquier versión anterior.
 - La taxonomía recarga `CategoryStore` para que la navegación pública refleje los cambios
   sin recargar la página.
@@ -196,12 +209,13 @@ el contenido de ejemplo de M1. Es repetible y no se carga en producción.
 
 ## Pruebas
 
-- Backend: 91 tests unitarios y 69 de integración con Testcontainers. La vista de
-  contactos añade `PressContactServiceTest` (6 casos) y `AdminPressContactsIT`.
+- Backend: 91 tests unitarios y 72 de integración con Testcontainers. La portada añade
+  `AdminArticleCoverIT` (8 casos: subida, reemplazo, metadatos, borrado, limpieza con el
+  artículo, publicación obligatoria, validación y autenticación).
 - Frontend: 43 tests unitarios (páginas públicas y de redacción, incluida la vista de
   contactos de prensa).
 - Verificación manual en navegador: login, restauración de sesión, guard, CRUD de
-  artículos y taxonomía, subida de medios con variantes, protección de medios en uso,
+  artículos y taxonomía, subida y reemplazo de portada con variantes, borrado conjunto,
   revisiones, 404/410 públicos y logout.
 
 Cubierto en M4: Testcontainers, e2e Playwright y auditoría a11y. Ver

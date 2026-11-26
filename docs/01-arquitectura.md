@@ -98,7 +98,7 @@ erDiagram
     USERS ||--o{ ARTICLE_REVISIONS : edita
     USERS ||--o{ REFRESH_TOKENS : posee
     CATEGORIES ||--o{ ARTICLES : clasifica
-    MEDIA_ASSETS ||--o{ ARTICLES : portada
+    ARTICLES }o--|| MEDIA_ASSETS : portada
     ARTICLES ||--o{ ARTICLE_REVISIONS : historial
     ARTICLES }o--o{ BANDS : menciona
     ARTICLES }o--o{ TAGS : etiqueta
@@ -221,7 +221,7 @@ devuelve `content`, `page`, `size`, `totalElements`, `totalPages`, `first` y `la
 | POST | `/auth/refresh` | cookie | Rota el refresh token |
 | POST | `/auth/logout` | cookie | Revoca |
 | GET/POST/PATCH/DELETE | `/admin/articles…` | EDITOR | CRUD + `POST /admin/articles/{id}/publish` |
-| POST | `/admin/media` | EDITOR | Multipart; genera 2 variantes WebP |
+| PUT/PATCH/DELETE | `/admin/articles/{id}/cover` | EDITOR | Portada propia del artículo: subir, metadatos y quitar |
 | GET/POST/PATCH | `/admin/bands`, `/admin/categories`, `/admin/tags` | EDITOR | Taxonomía |
 | GET | `/admin/articles/{id}/revisions` | EDITOR | Historial |
 
@@ -351,7 +351,7 @@ El runbook completo está en [`06-produccion.md`](./06-produccion.md).
 |---|---|---|---|
 | **M0 Fundaciones** ✅ | Maven+Angular, Docker Compose, Flyway base, OpenAPI, CI, `/actuator/health` | 2–3 días | `docker compose up` deja el entorno listo; CI en verde en el primer push |
 | **M1 Lectura** ✅ | Entidades, migraciones, endpoints públicos, home/listado/detalle/búsqueda, seed | 2 semanas | Contenido de ejemplo navegable con datos reales y filtros |
-| **M2 Redacción** ✅ | Auth con roles, CRUD, editor Markdown, media, revisiones | 2 semanas | Publicar un artículo con portada e imágenes sin tocar la BD |
+| **M2 Redacción** ✅ | Auth con roles, CRUD, editor Markdown, portada por artículo, revisiones | 2 semanas | Publicar un artículo con su portada sin tocar la BD |
 | **M3 SEO** ✅ | Sitemap, robots, RSS global y por categoría, JSON-LD, prerender selectivo, 404/410 ya en M1 | 1 semana | Rich Results válidos; sitemap enviado a Search Console |
 | **M4 Calidad** ✅ | Testcontainers, cobertura, e2e Playwright, a11y AA, Lighthouse | 1 semana | Cobertura de servicios > 70 %, Lighthouse ≥ 90/95, 0 violaciones axe |
 | **M5 Producción** | VPS, dominio, TLS, backups, monitorización, RGPD | 1 semana | Infraestructura implementada y validada; falta el despliegue real con VPS/dominio y backup restaurado en producción |

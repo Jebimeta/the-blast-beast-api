@@ -3,15 +3,11 @@ package com.theblastbeast.service;
 import com.theblastbeast.domain.entity.MediaAsset;
 import com.theblastbeast.domain.entity.MediaKind;
 import com.theblastbeast.domain.vo.MediaAssetKind;
-import com.theblastbeast.domain.vo.MediaAssetResponse;
-import com.theblastbeast.domain.vo.MediaPage;
 import com.theblastbeast.domain.vo.MediaSummary;
-import com.theblastbeast.domain.vo.MediaUpdateRequest;
 import com.theblastbeast.domain.vo.MediaVariant;
 import com.theblastbeast.exception.BusinessException;
 import com.theblastbeast.exception.ErrorCode;
 import com.theblastbeast.properties.StorageProperties;
-import com.theblastbeast.repository.ArticleRepository;
 import com.theblastbeast.repository.MediaAssetRepository;
 import com.theblastbeast.storage.StorageService;
 import java.awt.image.BufferedImage;
@@ -31,9 +27,6 @@ import javax.imageio.ImageIO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -44,19 +37,21 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class MediaService {
 
-    private static final int DEFAULT_PAGE_SIZE = 24;
-    private static final int MAX_PAGE_SIZE = 50;
     private static final DateTimeFormatter FOLDER = DateTimeFormatter.ofPattern("yyyy/MM");
     private static final boolean WEBP_SUPPORTED =
             ImageIO.getImageWritersByMIMEType("image/webp").hasNext();
 
     private final MediaAssetRepository mediaAssetRepository;
-    private final ArticleRepository articleRepository;
     private final StorageService storageService;
     private final StorageProperties storageProperties;
 
+    /**
+     * Guarda una imagen y sus variantes. El resultado se asocia siempre a un
+     * artículo desde {@link AdminArticleService}; no existe una biblioteca
+     * compartida de portadas.
+     */
     @Transactional
-    public MediaAssetResponse upload(MultipartFile file, String altText, String credit) {
+    public MediaAsset upload(MultipartFile file, String altText, String credit) {
         log.debug("INIT - MediaService -> upload() - file={}", file.getOriginalFilename());
         if (file == null || file.isEmpty()) {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR, "El archivo está vacío");
@@ -87,59 +82,35 @@ public class MediaService {
         saveVariant(original, image, MediaKind.THUMB, storageProperties.thumbWidth(), folder, baseName);
         saveVariant(original, image, MediaKind.HERO, storageProperties.heroWidth(), folder, baseName);
 
-        MediaAssetResponse response = toResponse(original);
         log.info("END - MediaService -> upload() - id={}, key={}", original.getId(), originalKey);
-        return response;
-    }
-
-    @Transactional(readOnly = true)
-    public MediaPage list(Integer page, Integer size, String q) {
-        int safePage = page == null ? 0 : Math.max(page, 0);
-        int safeSize = size == null
-                ? DEFAULT_PAGE_SIZE
-                : Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
-        String query = q == null ? "" : q.trim();
-        Pageable pageable = PageRequest.of(safePage, safeSize);
-        Page<MediaAsset> result = mediaAssetRepository.searchOriginals(query, pageable);
-
-        MediaPage response = new MediaPage();
-        response.setContent(result.getContent().stream().map(this::toResponse).toList());
-        response.setPage(result.getNumber());
-        response.setSize(result.getSize());
-        response.setTotalElements(result.getTotalElements());
-        response.setTotalPages(result.getTotalPages());
-        response.setFirst(result.isFirst());
-        response.setLast(result.isLast());
-        return response;
+        return original;
     }
 
     @Transactional
-    public MediaAssetResponse update(Long id, MediaUpdateRequest request) {
-        MediaAsset asset = find(id);
-        if (asset.getKind() != MediaKind.ORIGINAL) {
+    public MediaAsset updateMetadata(MediaAsset asset, String altText, String credit) {
+        if (asset == null) {
             throw new BusinessException(ErrorCode.MEDIA_NOT_FOUND);
         }
-        asset.setAltText(normalize(request.getAltText(), 300));
-        asset.setCredit(normalize(request.getCredit(), 200));
-        return toResponse(asset);
+        asset.setAltText(normalize(altText, 300));
+        asset.setCredit(normalize(credit, 200));
+        return asset;
     }
 
+    /**
+     * Elimina una portada y sus variantes. La comprobación de que ya no está
+     * asociada a ningún artículo corresponde al servicio de artículos.
+     */
     @Transactional
-    public void delete(Long id) {
-        MediaAsset asset = find(id);
-        if (asset.getKind() != MediaKind.ORIGINAL) {
-            throw new BusinessException(ErrorCode.MEDIA_NOT_FOUND);
+    public void deleteAsset(MediaAsset asset) {
+        if (asset == null) {
+            return;
         }
-        if (articleRepository.existsByCoverMediaId(id)) {
-            throw new BusinessException(ErrorCode.MEDIA_IN_USE);
-        }
-
-        List<MediaAsset> variants = mediaAssetRepository.findByParentIdOrderByKindAsc(id);
+        List<MediaAsset> variants = mediaAssetRepository.findByParentIdOrderByKindAsc(asset.getId());
         variants.forEach(variant -> storageService.delete(variant.getStorageKey()));
         mediaAssetRepository.deleteAll(variants);
         storageService.delete(asset.getStorageKey());
         mediaAssetRepository.delete(asset);
-        log.info("END - MediaService -> delete() - id={}", id);
+        log.info("END - MediaService -> deleteAsset() - id={}", asset.getId());
     }
 
     public MediaSummary toSummary(MediaAsset asset) {
@@ -186,24 +157,6 @@ public class MediaService {
         return summary;
     }
 
-    public MediaAssetResponse toResponse(MediaAsset asset) {
-        MediaAssetResponse response = new MediaAssetResponse();
-        response.setId(asset.getId());
-        response.setKind(MediaAssetKind.ORIGINAL);
-        response.setUrl(url(asset.getStorageKey()));
-        response.setMimeType(asset.getMimeType());
-        response.setWidth(asset.getWidth());
-        response.setHeight(asset.getHeight());
-        response.setBytes(asset.getBytes());
-        response.setAltText(asset.getAltText());
-        response.setCredit(asset.getCredit());
-        response.setCreatedAt(asset.getCreatedAt());
-        response.setVariants(mediaAssetRepository.findByParentIdOrderByKindAsc(asset.getId()).stream()
-                .map(this::toVariant)
-                .toList());
-        return response;
-    }
-
     private MediaVariant toVariant(MediaAsset asset) {
         MediaVariant variant = new MediaVariant();
         variant.setKind(MediaAssetKind.fromValue(asset.getKind().name().toLowerCase(Locale.ROOT)));
@@ -246,11 +199,6 @@ public class MediaService {
         variant.setBytes(bytes.length);
         storageService.store(key, bytes);
         mediaAssetRepository.save(variant);
-    }
-
-    private MediaAsset find(Long id) {
-        return mediaAssetRepository.findById(id)
-                .orElseThrow(() -> new BusinessException(ErrorCode.MEDIA_NOT_FOUND));
     }
 
     private String detectMimeType(MultipartFile file) {
