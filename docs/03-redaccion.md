@@ -6,9 +6,9 @@
 ## Alcance
 
 La redacción puede entrar en un panel privado y publicar sin tocar SQL: crear y editar
-noticias en Markdown, subir la portada propia de cada una, gestionar categorías, bandas y
-etiquetas, consultar el historial de versiones y mover cada pieza entre borrador, publicado
-y archivado.
+noticias en Markdown, subir la portada propia de cada una, clasificarlas con su categoría,
+bandas y etiquetas, consultar el historial de versiones y mover cada pieza entre borrador,
+publicado y archivado.
 
 Fuera de M2: cuentas de personal con permisos distintos de ADMIN (el modelo ya los soporta),
 RSS, sitemap, prerender y despliegue en producción.
@@ -174,8 +174,7 @@ Rutas bajo `/admin`, renderizadas en cliente (`RenderMode.Client`):
 | `/admin/login` | Acceso con email y contraseña |
 | `/admin/articulos` | Listado con filtros por estado y texto, acciones de estado y borrado |
 | `/admin/articulos/nuevo` | Editor de artículo nuevo |
-| `/admin/articulos/:id` | Editor con vista previa, autoguardado e historial |
-| `/admin/taxonomia` | Pestañas de categorías, bandas y etiquetas |
+| `/admin/articulos/:id` | Editor con vista previa, autoguardado, clasificación e historial |
 | `/admin/contactos` | Contactos de prensa con búsqueda, filtro por categoría y descarga CSV/Excel |
 | `/admin/cuenta` | Cambio de contraseña del usuario autenticado |
 
@@ -190,10 +189,9 @@ Detalles:
   quitarla. Muestra la previsualización local antes de subir y la variante `thumb` después.
 - La tarjeta «Clasificación» usa `NameListInput`: los nombres se añaden con Enter, coma
   o al salir del campo, se pegan varios separados por comas y se quitan con su botón o
-  Backspace. Admite hasta 20 bandas y 20 etiquetas.
+  Backspace. Admite hasta 20 bandas y 20 etiquetas; las fichas se crean al guardar la
+  noticia, sin una sección de taxonomía aparte.
 - El historial permite restaurar cualquier versión anterior.
-- La taxonomía recarga `CategoryStore` para que la navegación pública refleje los cambios
-  sin recargar la página.
 
 ## Contactos de prensa e imagen
 
@@ -223,8 +221,8 @@ el contenido de ejemplo de M1. Es repetible y no se carga en producción.
 - Frontend: 43 tests unitarios (páginas públicas y de redacción, incluida la vista de
   contactos de prensa y el campo de chips `NameListInput`).
 - Verificación manual en navegador: login, restauración de sesión, guard, CRUD de
-  artículos y taxonomía, subida y reemplazo de portada con variantes, borrado conjunto,
-  revisiones, 404/410 públicos y logout.
+  artículos y clasificación manual, subida y reemplazo de portada con variantes, borrado
+  conjunto, revisiones, 404/410 públicos y logout.
 
 Cubierto en M4: Testcontainers, e2e Playwright y auditoría a11y. Ver
 [`05-calidad.md`](./05-calidad.md).

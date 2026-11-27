@@ -222,13 +222,13 @@ devuelve `content`, `page`, `size`, `totalElements`, `totalPages`, `first` y `la
 | POST | `/auth/logout` | cookie | Revoca |
 | GET/POST/PATCH/DELETE | `/admin/articles…` | EDITOR | CRUD + `POST /admin/articles/{id}/publish` |
 | PUT/PATCH/DELETE | `/admin/articles/{id}/cover` | EDITOR | Portada propia del artículo: subir, metadatos y quitar |
-| GET/POST/PATCH | `/admin/bands`, `/admin/categories`, `/admin/tags` | EDITOR | Taxonomía |
+| GET/POST/PATCH | `/admin/bands`, `/admin/categories`, `/admin/tags` | EDITOR | Taxonomía (solo API) |
 | GET | `/admin/articles/{id}/revisions` | EDITOR | Historial |
 
 El alta y la edición de artículos reciben `bandNames`/`tagNames` escritos a mano. El
 servicio resuelve cada nombre contra la ficha existente (sin distinguir mayúsculas) o la
 crea con un slug único; así se conserva la página pública `/bands/{slug}` sin obligar a
-la redacción a pasar antes por la taxonomía.
+la redacción a pasar antes por una pantalla de taxonomía, que ya no existe en el panel.
 
 **Entrega — M3:**
 
