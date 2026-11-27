@@ -12,9 +12,9 @@ en CI, así que una regresión rompe el build.
 
 | Pieza | Herramienta | Criterio |
 |---|---|---|
-| Integración backend | Testcontainers + Failsafe | PostgreSQL 17 real, 69 tests |
+| Integración backend | Testcontainers + Failsafe | PostgreSQL 17 real, 73 tests |
 | Cobertura | JaCoCo | Líneas de `com.theblastbeast.service` ≥ 70 % |
-| E2E | Playwright | 32 tests sobre el stack completo |
+| E2E | Playwright | 31 tests sobre el stack completo |
 | Accesibilidad | `@axe-core/playwright` | WCAG 2.1 AA, 0 violaciones |
 | Rendimiento y SEO | Lighthouse CI | Móvil: 90 / 95 / 90 / 95 |
 
@@ -38,13 +38,13 @@ regression` y monitorización de producción. Eso pertenece a M5.
 - **Utilidades de siembra.** `seedUser`, `seedCategory`, `seedBand`, `seedTag`,
   `seedArticle`, `loginAsAdmin` y `refreshCookie` evitan repetir *setup* en cada test.
 
-Distribución de los 72 tests de integración:
+Distribución de los 73 tests de integración:
 
 | Clase | Tests | Qué cubre |
 |---|---|---|
 | `AuthIT` | 13 | Login, rotación de refresco, reuso, logout, cambio de contraseña y bloqueo por intentos |
 | `PublicApiIT` | 11 | Listado, destacados, detalle, categorías, bandas, búsqueda, 404/410 |
-| `AdminArticleIT` | 11 | CRUD, estados, revisiones, publicación y borrado |
+| `AdminArticleIT` | 12 | CRUD, estados, revisiones, publicación, borrado y clasificación manual con enlace a la página de banda |
 | `ConcertIT` | 8 | Agenda pública, detalle, filtros, contrato sin precios y sincronización editorial |
 | `AdminTaxonomyIT` | 6 | Categorías, bandas y etiquetas |
 | `AdminArticleCoverIT` | 8 | Subida multipart, variantes WebP, reemplazo, metadatos, borrado conjunto y publicación con portada |
@@ -75,8 +75,8 @@ donde una regla global se diluiría entre mappers y VOs generados.
 
 | Métrica (servicios) | Valor |
 |---|---|
-| Líneas | **1490 / 1604 = 92,9 %** |
-| Ramas | 379 / 535 = 70,8 % |
+| Líneas | **1522 / 1639 = 92,9 %** |
+| Ramas | 386 / 543 = 71,1 % |
 
 El informe HTML queda en `target/site/jacoco/index.html` y CI publica el `.exec`, el XML y
 los reportes de Surefire/Failsafe como artefactos.
@@ -90,14 +90,16 @@ permite apuntar a otro entorno.
 | Spec | Tests | Contenido |
 |---|---|---|
 | `e2e/public.spec.ts` | 13 | Portada, detalle, archivo, búsqueda, agenda, 404 real, estáticas, sitemap/robots/feed |
-| `e2e/admin.spec.ts` | 5 | Login obligatorio, ciclo crear→subir portada→publicar→verificar→borrar, CRUD del radar, filtros y contactos de prensa |
+| `e2e/admin.spec.ts` | 5 | Login obligatorio, ciclo crear→clasificar a mano→publicar→verificar→borrar, CRUD del radar, filtros y contactos de prensa |
 | `e2e/a11y.spec.ts` | 13 | axe sobre páginas públicas, login y panel autenticado (la biblioteca de medios ya no existe) |
 
 Detalles que hacen la suite fiable:
 
-- El test editorial crea un artículo con marca de tiempo, sube una portada, comprueba que
-  aparece en el portal con su imagen y **lo borra al final**; si falla antes, deja rastro y
-  hay que limpiarlo a mano. Tras el borrado verifica que la portada ya no se sirve.
+- El test editorial crea un artículo con marca de tiempo, escribe banda y etiqueta a mano,
+  sube una portada, comprueba que aparece en el portal con su imagen y que el enlace de la
+  banda lleva a `/bandas/metallica` con el artículo listado, y **lo borra al final**; si
+  falla antes, deja rastro y hay que limpiarlo a mano. Tras el borrado verifica que la
+  portada ya no se sirve.
 - Los tests de accesibilidad recorren las rutas principales y el panel autenticado, no
   solo una página de muestra.
 - En CI, `retries: 1` y `workers: 2`; en local también 2 workers, porque axe y el SSR son intensivos en CPU.

@@ -29,8 +29,11 @@ import com.theblastbeast.security.CurrentUserProvider;
 import jakarta.persistence.criteria.Predicate;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +53,10 @@ public class AdminArticleService {
 
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 50;
+    private static final int MAX_BANDS = 20;
+    private static final int MAX_TAGS = 20;
+    private static final int MAX_BAND_NAME = 120;
+    private static final int MAX_TAG_NAME = 80;
 
     private final ArticleRepository articleRepository;
     private final ArticleRevisionRepository revisionRepository;
@@ -248,8 +255,8 @@ public class AdminArticleService {
         article.setBodyHtml(markdownService.render(request.getBodyMd()));
         article.setReadingMinutes(markdownService.readingMinutes(request.getBodyMd()));
         article.setCategory(resolveCategory(request.getCategoryId()));
-        article.setBands(resolveBands(request.getBandIds()));
-        article.setTags(resolveTags(request.getTagIds()));
+        article.setBands(resolveBands(request.getBandNames()));
+        article.setTags(resolveTags(request.getTagNames()));
         article.setSeoTitle(trimToNull(request.getSeoTitle()));
         article.setSeoDescription(trimToNull(request.getSeoDescription()));
         article.setCanonicalUrl(trimToNull(request.getCanonicalUrl()));
@@ -260,28 +267,77 @@ public class AdminArticleService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.CATEGORY_NOT_FOUND));
     }
 
-    private Set<Band> resolveBands(List<Long> bandIds) {
-        if (bandIds == null || bandIds.isEmpty()) {
-            return new LinkedHashSet<>();
+    private Set<Band> resolveBands(List<String> names) {
+        Set<Band> bands = new LinkedHashSet<>();
+        for (String name : normalizeNames(names, MAX_BANDS, MAX_BAND_NAME, "banda")) {
+            String slug = slugService.slugify(name);
+            if (!StringUtils.hasText(slug)) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                        "No se pudo generar un slug a partir del nombre de la banda");
+            }
+            Band band = bandRepository.findBySlug(slug)
+                    .or(() -> bandRepository.findFirstByNameIgnoreCase(name))
+                    .orElseGet(() -> createBand(name, slug));
+            bands.add(band);
         }
-        Set<Long> uniqueIds = new LinkedHashSet<>(bandIds);
-        List<Band> bands = bandRepository.findAllById(uniqueIds);
-        if (bands.size() != uniqueIds.size()) {
-            throw new BusinessException(ErrorCode.BAND_NOT_FOUND);
-        }
-        return new LinkedHashSet<>(bands);
+        return bands;
     }
 
-    private Set<Tag> resolveTags(List<Long> tagIds) {
-        if (tagIds == null || tagIds.isEmpty()) {
-            return new LinkedHashSet<>();
+    private Set<Tag> resolveTags(List<String> names) {
+        Set<Tag> tags = new LinkedHashSet<>();
+        for (String name : normalizeNames(names, MAX_TAGS, MAX_TAG_NAME, "etiqueta")) {
+            String slug = slugService.slugify(name);
+            if (!StringUtils.hasText(slug)) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                        "No se pudo generar un slug a partir del nombre de la etiqueta");
+            }
+            Tag tag = tagRepository.findBySlug(slug)
+                    .or(() -> tagRepository.findFirstByNameIgnoreCase(name))
+                    .orElseGet(() -> createTag(name, slug));
+            tags.add(tag);
         }
-        Set<Long> uniqueIds = new LinkedHashSet<>(tagIds);
-        List<Tag> tags = tagRepository.findAllById(uniqueIds);
-        if (tags.size() != uniqueIds.size()) {
-            throw new BusinessException(ErrorCode.TAG_NOT_FOUND);
+        return tags;
+    }
+
+    private Band createBand(String name, String slug) {
+        Band band = new Band();
+        band.setName(name);
+        band.setSlug(slugService.unique(slug, MAX_BAND_NAME, bandRepository::existsBySlug));
+        bandRepository.save(band);
+        log.info("Banda creada desde el editor - id={}, slug={}", band.getId(), band.getSlug());
+        return band;
+    }
+
+    private Tag createTag(String name, String slug) {
+        Tag tag = new Tag();
+        tag.setName(name);
+        tag.setSlug(slugService.unique(slug, MAX_TAG_NAME, tagRepository::existsBySlug));
+        tagRepository.save(tag);
+        log.info("Etiqueta creada desde el editor - id={}, slug={}", tag.getId(), tag.getSlug());
+        return tag;
+    }
+
+    private List<String> normalizeNames(List<String> names, int maxItems, int maxLength, String label) {
+        if (names == null || names.isEmpty()) {
+            return List.of();
         }
-        return new LinkedHashSet<>(tags);
+        Map<String, String> unique = new LinkedHashMap<>();
+        for (String raw : names) {
+            if (!StringUtils.hasText(raw)) {
+                continue;
+            }
+            String name = raw.trim();
+            if (name.length() > maxLength) {
+                throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                        "El nombre de la " + label + " no puede superar " + maxLength + " caracteres");
+            }
+            unique.putIfAbsent(name.toLowerCase(Locale.ROOT), name);
+        }
+        if (unique.size() > maxItems) {
+            throw new BusinessException(ErrorCode.VALIDATION_ERROR,
+                    "No se pueden añadir más de " + maxItems + " " + label + "s");
+        }
+        return List.copyOf(unique.values());
     }
 
     private String coverAlt(Article article, String altText) {

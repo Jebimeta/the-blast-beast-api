@@ -11,6 +11,8 @@ public interface TagRepository extends JpaRepository<Tag, Long> {
 
     Optional<Tag> findBySlug(String slug);
 
+    Optional<Tag> findFirstByNameIgnoreCase(String name);
+
     boolean existsBySlug(String slug);
 
     boolean existsBySlugAndIdNot(String slug, Long id);

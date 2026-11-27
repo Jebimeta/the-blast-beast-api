@@ -225,6 +225,11 @@ devuelve `content`, `page`, `size`, `totalElements`, `totalPages`, `first` y `la
 | GET/POST/PATCH | `/admin/bands`, `/admin/categories`, `/admin/tags` | EDITOR | Taxonomía |
 | GET | `/admin/articles/{id}/revisions` | EDITOR | Historial |
 
+El alta y la edición de artículos reciben `bandNames`/`tagNames` escritos a mano. El
+servicio resuelve cada nombre contra la ficha existente (sin distinguir mayúsculas) o la
+crea con un slug único; así se conserva la página pública `/bands/{slug}` sin obligar a
+la redacción a pasar antes por la taxonomía.
+
 **Entrega — M3:**
 
 | Método | Ruta | Descripción |

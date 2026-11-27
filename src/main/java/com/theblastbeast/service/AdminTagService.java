@@ -66,7 +66,7 @@ public class AdminTagService {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR,
                     "No se pudo generar un slug a partir del nombre");
         }
-        return slugService.unique(base, slug -> tagRepository.existsBySlugAndIdNot(slug,
+        return slugService.unique(base, 80, slug -> tagRepository.existsBySlugAndIdNot(slug,
                 currentId == null ? -1L : currentId));
     }
 

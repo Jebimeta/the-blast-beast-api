@@ -11,6 +11,8 @@ public interface BandRepository extends JpaRepository<Band, Long> {
 
     Optional<Band> findBySlug(String slug);
 
+    Optional<Band> findFirstByNameIgnoreCase(String name);
+
     boolean existsBySlug(String slug);
 
     boolean existsBySlugAndIdNot(String slug, Long id);

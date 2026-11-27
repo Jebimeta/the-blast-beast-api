@@ -11,6 +11,7 @@ import com.theblastbeast.domain.entity.User;
 import com.theblastbeast.domain.vo.AdminArticleDetail;
 import com.theblastbeast.domain.vo.AdminArticlePage;
 import com.theblastbeast.domain.vo.ArticleRevisionResponse;
+import com.theblastbeast.domain.vo.BandDetail;
 import com.theblastbeast.domain.vo.MarkdownPreviewResponse;
 import com.theblastbeast.domain.vo.SocialSummaryResponse;
 import com.theblastbeast.domain.vo.SocialSummarySource;
@@ -56,6 +57,48 @@ class AdminArticleIT extends AbstractIntegrationTest {
         assertThat(created.getBands()).extracting("slug").containsExactly("metallica");
         assertThat(created.getTags()).extracting("slug").containsExactly("gira");
         assertThat(created.getCreatedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("crea bandas y etiquetas manuales y enlaza la página de banda")
+    void creaBandasYEtiquetasManuales() {
+        String token = loginAsAdmin();
+        Map<String, Object> request = validRequest("Nueva banda en el cartel");
+        request.put("bandNames", List.of("Metallica", "Banda Manual"));
+        request.put("tagNames", List.of("Gira", "Etiqueta Manual"));
+
+        ResponseEntity<AdminArticleDetail> response = rest.exchange(
+                "/api/v1/admin/articles",
+                HttpMethod.POST,
+                new HttpEntity<>(request, jsonHeaders(token)),
+                AdminArticleDetail.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        AdminArticleDetail created = response.getBody();
+        assertThat(created).isNotNull();
+        assertThat(created.getBands())
+                .extracting("slug")
+                .containsExactlyInAnyOrder("metallica", "banda-manual");
+        assertThat(created.getTags())
+                .extracting("slug")
+                .containsExactlyInAnyOrder("gira", "etiqueta-manual");
+        assertThat(bandRepository.findBySlug("banda-manual")).isPresent();
+        assertThat(tagRepository.findBySlug("etiqueta-manual")).isPresent();
+        assertThat(bandRepository.findAll())
+                .filteredOn(band -> band.getSlug().equals("metallica"))
+                .hasSize(1);
+
+        assertThat(uploadCover(token, created.getId()).getStatusCode()).isEqualTo(HttpStatus.OK);
+        post(token, "/api/v1/admin/articles/" + created.getId() + "/publish");
+
+        ResponseEntity<BandDetail> band = rest.getForEntity(
+                "/api/v1/bands/banda-manual", BandDetail.class);
+        assertThat(band.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(band.getBody()).isNotNull();
+        assertThat(band.getBody().getName()).isEqualTo("Banda Manual");
+        assertThat(band.getBody().getArticles())
+                .extracting("slug")
+                .containsExactly(created.getSlug());
     }
 
     @Test
@@ -314,8 +357,8 @@ class AdminArticleIT extends AbstractIntegrationTest {
         request.put("excerpt", "Entradilla de " + title);
         request.put("bodyMd", "## " + title + "\n\nContenido de la noticia.");
         request.put("categoryId", noticias.getId());
-        request.put("bandIds", List.of(metallica.getId()));
-        request.put("tagIds", List.of(gira.getId()));
+        request.put("bandNames", List.of(metallica.getName()));
+        request.put("tagNames", List.of(gira.getName()));
         return request;
     }
 

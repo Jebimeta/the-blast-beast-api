@@ -81,7 +81,7 @@ public class AdminBandService {
             throw new BusinessException(ErrorCode.VALIDATION_ERROR,
                     "No se pudo generar un slug a partir del nombre");
         }
-        return slugService.unique(base, slug -> bandRepository.existsBySlugAndIdNot(slug,
+        return slugService.unique(base, 120, slug -> bandRepository.existsBySlugAndIdNot(slug,
                 currentId == null ? -1L : currentId));
     }
 

@@ -2504,16 +2504,27 @@ components:
         categoryId:
           type: integer
           format: int64
-        bandIds:
+        bandNames:
           type: array
+          description: >
+            Nombres de banda escritos a mano. Al guardar se reutiliza la ficha
+            existente o se crea una nueva, de modo que el artículo enlaza a su
+            página de banda.
+          maxItems: 20
           items:
-            type: integer
-            format: int64
-        tagIds:
+            type: string
+            minLength: 1
+            maxLength: 120
+        tagNames:
           type: array
+          description: >
+            Etiquetas escritas a mano. Al guardar se reutiliza la etiqueta
+            existente o se crea una nueva.
+          maxItems: 20
           items:
-            type: integer
-            format: int64
+            type: string
+            minLength: 1
+            maxLength: 80
         seoTitle:
           type: string
           maxLength: 200

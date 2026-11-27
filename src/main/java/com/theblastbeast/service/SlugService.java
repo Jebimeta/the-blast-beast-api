@@ -24,12 +24,16 @@ public class SlugService {
     }
 
     public String unique(String candidate, Predicate<String> exists) {
+        return unique(candidate, MAX_LENGTH, exists);
+    }
+
+    public String unique(String candidate, int maxLength, Predicate<String> exists) {
         String base = candidate;
         String slug = base;
         int suffix = 2;
         while (exists.test(slug)) {
             String suffixText = "-" + suffix++;
-            slug = truncate(base, MAX_LENGTH - suffixText.length()) + suffixText;
+            slug = truncate(base, maxLength - suffixText.length()) + suffixText;
         }
         return slug;
     }

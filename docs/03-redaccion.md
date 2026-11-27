@@ -120,10 +120,14 @@ Reglas:
 - Archivar un artículo hace que su URL pública responda `410`.
 - Cada `PUT` guarda la versión anterior en `article_revisions` con editor y fecha.
 - Las categorías con artículos no se pueden borrar (`CATEGORY_IN_USE`).
-- La categoría (sección del portal) y las etiquetas se eligen por separado, con dos
-  desplegables independientes. La sección «Noticias» filtra por la etiqueta `noticias`,
-  no por la categoría: un artículo de la categoría Noticias solo aparece allí si lleva
-  además esa etiqueta.
+- La categoría (sección del portal) sigue siendo un desplegable con las secciones
+  existentes. Bandas y etiquetas se escriben a mano en dos campos de chips, sin catálogo
+  que consultar.
+- Al guardar, cada nombre se resuelve contra la ficha existente (sin distinguir
+  mayúsculas) o se crea una nueva con su slug. La banda escrita en el editor queda
+  enlazada a `/bandas/{slug}`, que lista sus noticias publicadas.
+- La sección «Noticias» filtra por la etiqueta `noticias`, no por la categoría: un
+  artículo de la categoría Noticias solo aparece allí si lleva además esa etiqueta.
 
 ## Markdown y saneado
 
@@ -184,6 +188,9 @@ Detalles:
   inactividad si el formulario es válido.
 - La tarjeta «Portada» permite seleccionar imagen, alt y crédito, guardar metadatos y
   quitarla. Muestra la previsualización local antes de subir y la variante `thumb` después.
+- La tarjeta «Clasificación» usa `NameListInput`: los nombres se añaden con Enter, coma
+  o al salir del campo, se pegan varios separados por comas y se quitan con su botón o
+  Backspace. Admite hasta 20 bandas y 20 etiquetas.
 - El historial permite restaurar cualquier versión anterior.
 - La taxonomía recarga `CategoryStore` para que la navegación pública refleje los cambios
   sin recargar la página.
@@ -209,11 +216,12 @@ el contenido de ejemplo de M1. Es repetible y no se carga en producción.
 
 ## Pruebas
 
-- Backend: 91 tests unitarios y 72 de integración con Testcontainers. La portada añade
+- Backend: 91 tests unitarios y 73 de integración con Testcontainers. La portada añade
   `AdminArticleCoverIT` (8 casos: subida, reemplazo, metadatos, borrado, limpieza con el
-  artículo, publicación obligatoria, validación y autenticación).
+  artículo, publicación obligatoria, validación y autenticación); `AdminArticleIT` cubre
+  además la creación manual de bandas y etiquetas y el enlace a la página de banda.
 - Frontend: 43 tests unitarios (páginas públicas y de redacción, incluida la vista de
-  contactos de prensa).
+  contactos de prensa y el campo de chips `NameListInput`).
 - Verificación manual en navegador: login, restauración de sesión, guard, CRUD de
   artículos y taxonomía, subida y reemplazo de portada con variantes, borrado conjunto,
   revisiones, 404/410 públicos y logout.
